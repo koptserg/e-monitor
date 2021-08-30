@@ -173,6 +173,19 @@ void EpdSetFrameMemoryXY(const unsigned char* image_buffer, int x, int y, int im
     }
 }
 
+void EpdSleep(void) {
+    EpdSendCommand(DEEP_SLEEP_MODE);
+//    WaitUntilIdle();
+}
+
+void EpdReset(void) {
+  HalLcd_HW_Init();
+//    DigitalWrite(reset_pin, LOW);                //module reset    
+//    DelayMs(200);
+//    DigitalWrite(reset_pin, HIGH);
+//    DelayMs(200);    
+}
+
 const unsigned char lut_full_update[] = {
     0x50, 0xAA, 0x55, 0xAA, 0x11, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
