@@ -47,7 +47,7 @@ extern    void EpdSetFrameMemoryXY(const unsigned char* image_buffer,int x, int 
 extern    void EpdSetFrameMemory(const unsigned char* image_buffer);
 extern    void EpdClearFrameMemory(unsigned char color);
 extern    void EpdDisplayFrame(void);
-extern    void Sleep(void);
+extern    void EpdSleep(void);
 
 extern    void EpdSetLut(const unsigned char* lut);
 extern    void EpdSetMemoryArea(int x_start, int y_start, int x_end, int y_end);
