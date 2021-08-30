@@ -256,7 +256,8 @@ void zclApp_Init(byte task_id) {
     zclApp_StartReloadTimer();
     osal_start_reload_timer(zclApp_TaskID, APP_REPORT_CLOCK_EVT, 60000);
     
-    HalLcd_HW_Init();    //init EPD
+//    HalLcd_HW_Init();    //reset EPD
+    EpdReset();
     
   // epd start screen
   EpdInit(lut_full_update);
@@ -872,6 +873,7 @@ static void _delay_ms(uint16 milliSecs)
 
 void EpdtestRefresh(void)
 {
+    EpdReset();
 //  EpdSetFrameMemory(IMAGE_DATA);
 /*
   //Rectangle
@@ -1015,7 +1017,8 @@ void EpdtestRefresh(void)
   PaintDrawStringAt(0, 0, perc_string, &Font16, COLORED);
   EpdSetFrameMemoryXY(PaintGetImage(), 17, 36, PaintGetWidth(), PaintGetHeight()); 
 
-  EpdDisplayFrame();    
+  EpdDisplayFrame(); 
+  EpdSleep();
 }
 
 /****************************************************************************
