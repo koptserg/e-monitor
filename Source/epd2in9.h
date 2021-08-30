@@ -40,7 +40,7 @@ extern    int  EpdInit(const unsigned char* lut);
 extern    void EpdSendCommand(unsigned char command);
 extern    void EpdSendData(unsigned char data);
 extern    void WaitUntilIdle(void);
-extern    void Reset(void);
+extern    void EpdReset(void);
 
 extern    void EpdSetFrameMemoryXY(const unsigned char* image_buffer,int x, int y, int image_width, int image_height);
 
