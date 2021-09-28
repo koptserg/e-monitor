@@ -24,7 +24,6 @@
 #define BDB_FINDING_BINDING_CAPABILITY_ENABLED 1
 #define BDB_REPORTING TRUE
 
-
 #define ISR_KEYINTERRUPT
 #define HAL_BUZZER FALSE
 
@@ -32,6 +31,14 @@
 #define HAL_I2C TRUE
 #define BLINK_LEDS TRUE
 
+#define LQI_REQ
+#if defined(LQI_REQ)
+#define MT_TASK
+#define MT_SYS_FUNC
+#define MT_ZDO_FUNC
+#define MT_ZDO_MGMT
+#define INT_HEAP_LEN (2688)
+#endif
 
 //one of this boards
 // #define HAL_BOARD_MOTION
@@ -62,10 +69,10 @@
 #define MOTION_POWER_PORT 1
 #define MOTION_POWER_PIN  0
 
-//#define EPD2IN9
+#define EPD2IN9
 //#define EPD2IN9V2
 //#define EPD2IN13V2
-#define EPD1IN54V2
+//#define EPD1IN54V2
 
 //spi BME280, EPD
 #define HAL_LCD_MODE_PORT 0 

@@ -89,7 +89,7 @@ float bh1850_Read(void) {
     }
     // Convert raw value to lux
     level /= BH1750_CONV_FACTOR;
-    LREP("[BH1750] level %d \r\n", (uint16)level);
+//    LREP("[BH1750] level %d \r\n", (uint16)level);
     return level; 
 }
 

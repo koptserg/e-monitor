@@ -21,7 +21,7 @@ extern "C" {
 #define APP_READ_SENSORS_EVT            0x0002
 #define APP_REPORT_CLOCK_EVT            0x0004
 #define APP_MOTION_ON_EVT               0x0008
-#define APP_EPD_SLEEP_EVT               0x0010   
+//#define APP_EPD_SLEEP_EVT               0x0010   
 #define APP_MOTION_OFF_EVT              0x0020
 #define APP_MOTION_DELAY_EVT            0x0040
 #define APP_SAVE_ATTRS_EVT              0x0080

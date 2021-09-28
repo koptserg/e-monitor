@@ -125,6 +125,10 @@ uint16 date_now;
 //uint8 year_now;
 uint8 fullupdate_hour = 0;
 
+#ifdef LQI_REQ
+uint8 lqi = 0;
+uint8 zclApp_startIndex = 0;
+#endif
 afAddrType_t inderect_DstAddr = {.addrMode = (afAddrMode_t)AddrNotPresent, .endPoint = 0, .addr.shortAddr = 0};
 
 /*********************************************************************
@@ -154,6 +158,11 @@ static void EpdRefresh(void);
 void EpdtestRefresh(void);
 static void _delay_us(uint16 microSecs);
 static void _delay_ms(uint16 milliSecs);
+
+#ifdef LQI_REQ
+void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg);
+void zclApp_RequestLqi(void);
+#endif
 
 /*********************************************************************
  * ZCL General Profile Callback table
@@ -233,8 +242,10 @@ void zclApp_Init(byte task_id) {
 
     // Register for all key events - This app will handle all key events
     RegisterForKeys(zclApp_TaskID);
-//    LREP("Started build %s \r\n", zclApp_DateCodeNT);
-   
+#ifdef LQI_REQ
+    // Register the callback Mgmt_Lqi_rsp
+    ZDO_RegisterForZDOMsg(zclApp_TaskID, Mgmt_Lqi_rsp);
+#endif   
     zclApp_StartReloadTimer();
     osal_start_reload_timer(zclApp_TaskID, APP_REPORT_CLOCK_EVT, 60000);
     
@@ -265,33 +276,92 @@ void zclApp_Init(byte task_id) {
   EpdRefresh();
 }
 
+#ifdef LQI_REQ
+void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg){    
+  switch (InMsg->clusterID){
+    case Mgmt_Lqi_rsp:
+      LREP("InMsg->clusterID=0x%X\r\n", InMsg->clusterID);      
+    {
+      ZDO_MgmtLqiRsp_t *LqRsp;
+      uint8 num;
+      uint8 i;
+      uint8 EndDevice_Lqi;
+ 
+      LqRsp = osal_mem_alloc(sizeof(ZDO_MgmtLqiRsp_t ));
+      LqRsp = ZDO_ParseMgmtLqiRsp(InMsg);
+
+      num = LqRsp->neighborLqiCount;
+      LREP("startIndex=%d\r\n",LqRsp->startIndex);
+      for(i= 0; i < num; i++)
+      {
+        if (LqRsp->list[i].nwkAddr == _NIB.nwkDevAddress) {
+          EndDevice_Lqi = LqRsp->list[i].lqi;
+          lqi = EndDevice_Lqi;
+          zclApp_startIndex = LqRsp->startIndex;
+        } else {
+          zclApp_startIndex = zclApp_startIndex + 1;
+        }
+        LREP("nwkAddr=0x%X\r\n", LqRsp->list[i].nwkAddr);
+        LREP("lqi=%d\r\n", LqRsp->list[i].lqi);
+      }
+      osal_mem_free(LqRsp);
+      
+      EpdRefresh();
+    }
+
+    break;
+  }
+  
+}
+#endif
+
+#ifdef LQI_REQ
+void zclApp_RequestLqi(void){
+  if ( bdbAttributes.bdbNodeIsOnANetwork ){
+        zAddrType_t destAddr;
+        uint8 startIndex;
+        /* Dev address */
+        destAddr.addrMode = Addr16Bit;
+        destAddr.addr.shortAddr = 0; // Coordinator always address 0
+        startIndex = zclApp_startIndex;
+        ZDP_MgmtLqiReq(&destAddr,startIndex,0);
+  }
+}
+#endif
+
 uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
     afIncomingMSGPacket_t *MSGpkt;
     devStates_t zclApp_NwkState; //---
     
     (void)task_id; // Intentionally unreferenced parameter
     if (events & SYS_EVENT_MSG) {
-        while ((MSGpkt = (afIncomingMSGPacket_t *)osal_msg_receive(zclApp_TaskID))) {
+        while ((MSGpkt = (afIncomingMSGPacket_t *)osal_msg_receive(zclApp_TaskID))) {          
+//            LREP("MSGpkt->srcAddr=0x%X\r\n", MSGpkt->srcAddr);
+//            LREP("MSGpkt->macDestAddr=0x%X\r\n", MSGpkt->macDestAddr);
+//            LREP("MSGpkt->macSrcAddr=0x%X\r\n", MSGpkt->macSrcAddr);
             switch (MSGpkt->hdr.event) {
+#ifdef LQI_REQ
+            case ZDO_CB_MSG: 
+              zclApp_ProcessZDOMsgs((zdoIncomingMsg_t *)MSGpkt);
+              LREP("MSGpkt->hdr.event=0x%X\r\n", MSGpkt->hdr.event);
+              
+              break;
+#endif
             case KEY_CHANGE:
                 zclApp_HandleKeys(((keyChange_t *)MSGpkt)->state, ((keyChange_t *)MSGpkt)->keys);
                 
                 break;
-            case ZDO_STATE_CHANGE:
+            case ZDO_STATE_CHANGE:              
                 zclApp_NwkState = (devStates_t)(MSGpkt->hdr.status);
                 LREP("NwkState=%d\r\n", zclApp_NwkState);
                 if (zclApp_NwkState == DEV_END_DEVICE) {
                   IEN2 |= HAL_KEY_BIT4; // enable port1 int
                   P1DIR |=  BV(0); // P1_0 output
-//                  IO_DIR_PORT_PIN(MOTION_POWER_PORT, MOTION_POWER_PIN, IO_OUT); // P1_0 output
                   P1 |=  BV(0);   // power on DD
-//                  BNAME(MOTION_POWER_PORT, MOTION_POWER_PIN)= 1; // power on DD
                 } else {
                   IEN2 &= ~HAL_KEY_BIT4; // disable port1 int
-                  P1 &= ~BV(0);   // power off DD //--
-//                  BNAME(MOTION_POWER_PORT, MOTION_POWER_PIN)= 0; // power off DD 
+                  P1 &= ~BV(0);   // power off DD //-- 
                   P1DIR &= ~BV(0); // P1_0 input
-//                  IO_DIR_PORT_PIN(MOTION_POWER_PORT, MOTION_POWER_PIN, IO_IN); // P1_0 input
                 }
                 break;
             case ZCL_INCOMING_MSG:
@@ -312,9 +382,13 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
 
     if (events & APP_REPORT_CLOCK_EVT) {
         LREPMaster("APP_REPORT_CLOCK_EVT\r\n");
+#ifdef LQI_REQ        
+        zclApp_RequestLqi();
+#endif        
+        //incriment clock and clear epd
         time_now_s = time_now_s +1;
         fullupdate_hour = fullupdate_hour +1;
-        if (fullupdate_hour == 5){
+        if (fullupdate_hour == 5){ // over 5 min clear
           fullupdate_hour = 0;
           // epd full screen
           EpdInitFull();
@@ -392,7 +466,7 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
         P1 &= ~BV(0);   // power off motion
 //        BNAME(MOTION_POWER_PORT, MOTION_POWER_PIN)= 0; //power off motion
         osal_start_timerEx(zclApp_TaskID, APP_MOTION_DELAY_EVT, (uint32)zclApp_Config.PirOccupiedToUnoccupiedDelay * 1000);
-        LREPMaster("START_DELAY\r\n");
+        LREPMaster("MOTION_START_DELAY\r\n");
         //report
         zclApp_Occupied = 1;
         zclApp_Occupied_OnOff = 1;
@@ -431,14 +505,6 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
         EpdtestRefresh();
 
         return (events ^ APP_EPD_DELAY_EVT);
-    }
-    
-    if (events & APP_EPD_SLEEP_EVT) {
-        LREPMaster("APP_EPD_SLEEP_EVT\r\n");
-         EpdReset();
-         EpdSleep();
-
-        return (events ^ APP_EPD_SLEEP_EVT);
     }
     
     if (events & APP_BH1750_DELAY_EVT) {
@@ -512,6 +578,7 @@ static void zclApp_HandleKeys(byte portAndAction, byte keyCode) {
 }
 
 static void zclApp_ReadSensors(void) {
+  zclApp_StopReloadTimer();
     LREP("currentSensorsReadingPhase %d\r\n", currentSensorsReadingPhase);
     /**
      * FYI: split reading sensors into phases, so single call wouldn't block processor
@@ -546,9 +613,11 @@ static void zclApp_ReadSensors(void) {
         zclApp_bh1750StartLumosity();
       }      
         break;
-//    case 6:
-//        bdb_RepChangedAttrValue(zclApp_SecondEP.EndPoint, BINARY_INPUT, ATTRID_GEN_BINARY_INPUT_PRESENTVALUE);      
-//        break;
+#ifdef LQI_REQ
+    case 6:
+        zclApp_RequestLqi();      
+        break;
+#endif
     default:
         osal_stop_timerEx(zclApp_TaskID, APP_READ_SENSORS_EVT);
         osal_clear_event(zclApp_TaskID, APP_READ_SENSORS_EVT);
@@ -556,7 +625,7 @@ static void zclApp_ReadSensors(void) {
         break;
     }
   }
-
+  zclApp_StartReloadTimer();
 }
 
 static void zclApp_bh1750StartLumosity(void) {
@@ -585,16 +654,16 @@ static void zclApp_bh1750ReadLumosity(void) {
       bdb_RepChangedAttrValue(zclApp_FourthEP.EndPoint, ILLUMINANCE, ATTRID_MS_ILLUMINANCE_MEASURED_VALUE);
       EpdRefresh();
     }
-    LREP("bh1750IlluminanceSensor_MeasuredValue value=%d\r\n", zclApp_bh1750IlluminanceSensor_MeasuredValue);
+//    LREP("bh1750IlluminanceSensor_MeasuredValue value=%d\r\n", zclApp_bh1750IlluminanceSensor_MeasuredValue);
 }
 
 static void zclApp_ReadBME280Temperature(void) {
     uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
-    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
+//    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
     if (chip == 0x60) {
         bme280_takeForcedMeasurement();
         zclApp_Temperature_Sensor_MeasuredValue = (int16)(bme280_readTemperature() *100);
-        LREP("Temperature=%d\r\n", zclApp_Temperature_Sensor_MeasuredValue);
+//        LREP("Temperature=%d\r\n", zclApp_Temperature_Sensor_MeasuredValue);
         
         uint16 temp = 0;
         if (temp_Temperature_Sensor_MeasuredValue > zclApp_Temperature_Sensor_MeasuredValue){
@@ -614,13 +683,13 @@ static void zclApp_ReadBME280Temperature(void) {
 
 static void zclApp_ReadBME280Pressure(void) {
     uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
-    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
+//    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
     if (chip == 0x60) {
         bme280_takeForcedMeasurement();
         zclApp_PressureSensor_ScaledValue = (int16) (pow(10.0, (double) zclApp_PressureSensor_Scale) * (double) bme280_readPressure()* 100);
 
         zclApp_PressureSensor_MeasuredValue = (uint16)bme280_readPressure();
-        LREP("Pressure=%d\r\n", zclApp_PressureSensor_MeasuredValue);
+//        LREP("Pressure=%d\r\n", zclApp_PressureSensor_MeasuredValue);
                 
         uint16 press = 0;
         if (temp_PressureSensor_MeasuredValue > zclApp_PressureSensor_MeasuredValue){
@@ -641,11 +710,11 @@ static void zclApp_ReadBME280Pressure(void) {
 
 static void zclApp_ReadBME280Humidity(void) {
     uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
-    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
+//    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
     if (chip == 0x60) {
         bme280_takeForcedMeasurement();
         zclApp_HumiditySensor_MeasuredValue = (uint16)(bme280_readHumidity() * 100);
-        LREP("Humidity=%d\r\n", zclApp_HumiditySensor_MeasuredValue);
+//        LREP("Humidity=%d\r\n", zclApp_HumiditySensor_MeasuredValue);
                 
         uint16 humid = 0;
         if (temp_HumiditySensor_MeasuredValue > zclApp_HumiditySensor_MeasuredValue){
@@ -663,7 +732,7 @@ static void zclApp_ReadBME280Humidity(void) {
     }
 }
 
-static void zclApp_Report(void) { osal_start_reload_timer(zclApp_TaskID, APP_READ_SENSORS_EVT, 100); }
+static void zclApp_Report(void) { osal_start_reload_timer(zclApp_TaskID, APP_READ_SENSORS_EVT, 200); }
 
 static void zclApp_BasicResetCB(void) {
     LREPMaster("BasicResetCB\r\n");
@@ -761,8 +830,107 @@ static void _delay_ms(uint16 milliSecs)
 }
 
 void EpdtestRefresh(void)
-{ 
+{   
   EpdReset(); //disable sleep EPD
+  //status network
+#if defined(EPD1IN54V2)
+  if ( bdbAttributes.bdbNodeIsOnANetwork ){
+    EpdSetFrameMemoryXY(IMAGE_ONNETWORK, 184, 0, 16, 16);
+  } else {
+    EpdSetFrameMemoryXY(IMAGE_OFFNETWORK, 184, 0, 16, 16);
+  }
+#endif
+#if defined(EPD2IN13V2)
+  if ( bdbAttributes.bdbNodeIsOnANetwork ){
+    EpdSetFrameMemoryXY(IMAGE_ONNETWORK, 106, 0, 16, 16);
+  } else {
+    EpdSetFrameMemoryXY(IMAGE_OFFNETWORK, 106, 0, 16, 16);
+  }
+#endif
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  if ( bdbAttributes.bdbNodeIsOnANetwork ){
+    EpdSetFrameMemoryXY(IMAGE_ONNETWORK, 112, 0, 16, 16);
+  } else {
+    EpdSetFrameMemoryXY(IMAGE_OFFNETWORK, 112, 0, 16, 16);
+  }
+#endif
+
+#ifdef LQI_REQ  
+  // LQI 
+  char lqi_string[] = {'0', '0', '0', '\0'};
+  lqi_string[0] = lqi / 100 % 10 + '0';
+  lqi_string[1] = lqi / 10 % 10 + '0';
+  lqi_string[2] = lqi % 10 + '0';
+  
+  PaintSetWidth(16);
+  PaintSetHeight(36);
+  PaintSetRotate(ROTATE_90);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, lqi_string, &Font16, COLORED); 
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 112, 18, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD2IN13V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 106, 18, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD1IN54V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 184, 18, PaintGetWidth(), PaintGetHeight());
+#endif
+#endif  //LQI_REQ
+  
+  // nwkDevAddress, nwkPanId, nwkLogicalChannel 
+  char nwk_string[] = {'0', 'x','0', '0', '0', '0', ' ', '0', 'x','0', '0', '0', '0',' ', '0', '0','\0'};
+  nwk_string[2] = _NIB.nwkDevAddress / 4096 %16 + '0';
+  if ((_NIB.nwkDevAddress/4096 %16) > 9){
+    nwk_string[2] = nwk_string[2]+7;
+  }
+  nwk_string[3] = _NIB.nwkDevAddress / 256 %16 + '0';
+  if ((_NIB.nwkDevAddress/256 %16) > 9){
+    nwk_string[3] = nwk_string[3]+7;
+  }
+  nwk_string[4] = _NIB.nwkDevAddress / 16 %16 + '0';
+  if ((_NIB.nwkDevAddress/16 %16) > 9){
+    nwk_string[4] = nwk_string[4]+7;
+  }
+  nwk_string[5] = _NIB.nwkDevAddress %16 + '0';
+  if ((_NIB.nwkDevAddress %16) > 9){
+    nwk_string[5] = nwk_string[5]+7;
+  }
+  
+  nwk_string[9] = _NIB.nwkPanId / 4096 %16 + '0';
+  if ((_NIB.nwkPanId/4096 %16) > 9){
+    nwk_string[9] = nwk_string[9]+7;
+  }
+  nwk_string[10] = _NIB.nwkPanId / 256 %16 + '0';
+  if ((_NIB.nwkPanId/256 %16) > 9){
+    nwk_string[10] = nwk_string[10]+7;
+  }
+  nwk_string[11] = _NIB.nwkPanId / 16 %16 + '0';
+  if ((_NIB.nwkPanId/16 %16) > 9){
+    nwk_string[11] = nwk_string[11]+7;
+  }
+  nwk_string[12] = _NIB.nwkPanId %16 + '0';
+  if ((_NIB.nwkPanId %16) > 9){
+    nwk_string[12] = nwk_string[12]+7;
+  }
+  
+  nwk_string[14] = _NIB.nwkLogicalChannel / 10 %10 + '0';
+  nwk_string[15] = _NIB.nwkLogicalChannel %10 + '0';
+  
+  PaintSetWidth(16);
+  PaintSetHeight(192);
+  PaintSetRotate(ROTATE_90);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, nwk_string, &Font16, COLORED); 
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 112, 64, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD2IN13V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 106, 64, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD1IN54V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 184, 64, PaintGetWidth(), PaintGetHeight());
+#endif
   
   // clock init Firmware build date 20/08/2021 13:47
   if (time_now_s == 1440){
@@ -833,7 +1001,10 @@ void EpdtestRefresh(void)
   } else {
     PaintDrawStringAt(0, 0, "Occupied  ", &Font16, COLORED);
   }
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 90, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD2IN13V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 90, 118, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
@@ -853,7 +1024,10 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, illum_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 65, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD2IN13V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 65, 118, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
@@ -872,7 +1046,10 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, temp_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 49, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD2IN13V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 49, 118, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
@@ -891,7 +1068,10 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, hum_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 33, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD2IN13V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 33, 118, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
@@ -911,7 +1091,10 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, pres_string, &Font16, COLORED); 
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 17, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD2IN13V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 17, 118, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
@@ -919,8 +1102,7 @@ void EpdtestRefresh(void)
 #endif
 
   EpdDisplayFramePartial();
-//  EpdDisplayFrame();
-//  osal_start_timerEx(zclApp_TaskID, APP_EPD_SLEEP_EVT, 2000);
+
   EpdSleep();
 }
 

@@ -309,10 +309,10 @@ void bme_ConfigSPI(void)
 
 void bme_ConfigGP(void)
 {
-  /* Set SPI on UART 1 alternative 2 */
+  /* Reset SPI on UART 1 alternative 2 to GPIO*/
   PERCFG &= ~0x02;
 
-  /* Configure clk, master out and master in lines */
+  /* Configure clk, master out and master in lines to Input*/
   HAL_CONFIG_IO_GP(HAL_LCD_CLK_PORT,  HAL_LCD_CLK_PIN);
   HAL_CONFIG_IO_GP(HAL_LCD_MOSI_PORT, HAL_LCD_MOSI_PIN);
   HAL_CONFIG_IO_GP(HAL_LCD_MISO_PORT, HAL_LCD_MISO_PIN);
