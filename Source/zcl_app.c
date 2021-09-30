@@ -311,7 +311,9 @@ void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg){
 
     break;
   }
-  
+  if (InMsg->asdu) {
+        osal_mem_free(InMsg->asdu);
+  }  
 }
 #endif
 
