@@ -277,7 +277,8 @@ void zclApp_Init(byte task_id) {
 }
 
 #ifdef LQI_REQ
-void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg){    
+void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg){
+  
   switch (InMsg->clusterID){
     case Mgmt_Lqi_rsp:
       LREP("InMsg->clusterID=0x%X\r\n", InMsg->clusterID);      
@@ -286,8 +287,7 @@ void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg){
       uint8 num;
       uint8 i;
       uint8 EndDevice_Lqi;
- 
-      LqRsp = osal_mem_alloc(sizeof(ZDO_MgmtLqiRsp_t ));
+
       LqRsp = ZDO_ParseMgmtLqiRsp(InMsg);
 
       num = LqRsp->neighborLqiCount;
@@ -304,7 +304,7 @@ void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg){
         LREP("nwkAddr=0x%X\r\n", LqRsp->list[i].nwkAddr);
         LREP("lqi=%d\r\n", LqRsp->list[i].lqi);
       }
-      osal_mem_free(LqRsp);
+      osal_mem_free(LqRsp);      
       
       EpdRefresh();
     }
@@ -313,7 +313,7 @@ void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg){
   }
   if (InMsg->asdu) {
         osal_mem_free(InMsg->asdu);
-  }  
+  }
 }
 #endif
 
@@ -343,10 +343,10 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
 //            LREP("MSGpkt->macSrcAddr=0x%X\r\n", MSGpkt->macSrcAddr);
             switch (MSGpkt->hdr.event) {
 #ifdef LQI_REQ
-            case ZDO_CB_MSG: 
-              zclApp_ProcessZDOMsgs((zdoIncomingMsg_t *)MSGpkt);
-              LREP("MSGpkt->hdr.event=0x%X\r\n", MSGpkt->hdr.event);
-              
+            case ZDO_CB_MSG:
+                zclApp_ProcessZDOMsgs((zdoIncomingMsg_t *)MSGpkt);
+                LREP("MSGpkt->hdr.event=0x%X\r\n", MSGpkt->hdr.event);
+
               break;
 #endif
             case KEY_CHANGE:
@@ -612,6 +612,8 @@ static void zclApp_ReadSensors(void) {
         break;
     case 5:
       if (bh1750Detect == 1){
+        osal_stop_timerEx(zclApp_TaskID, APP_BH1750_DELAY_EVT);
+        osal_clear_event(zclApp_TaskID, APP_BH1750_DELAY_EVT);
         zclApp_bh1750StartLumosity();
       }      
         break;
@@ -660,9 +662,9 @@ static void zclApp_bh1750ReadLumosity(void) {
 }
 
 static void zclApp_ReadBME280Temperature(void) {
-    uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
+//    uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
 //    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
-    if (chip == 0x60) {
+//    if (chip == 0x60) {
         bme280_takeForcedMeasurement();
         zclApp_Temperature_Sensor_MeasuredValue = (int16)(bme280_readTemperature() *100);
 //        LREP("Temperature=%d\r\n", zclApp_Temperature_Sensor_MeasuredValue);
@@ -678,15 +680,15 @@ static void zclApp_ReadBME280Temperature(void) {
           bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, TEMP, ATTRID_MS_TEMPERATURE_MEASURED_VALUE);
           EpdRefresh();
         }        
-    } else {
-        LREPMaster("NOT BME280\r\n");
-    }
+//    } else {
+//        LREPMaster("NOT BME280\r\n");
+//    }
 }
 
 static void zclApp_ReadBME280Pressure(void) {
-    uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
+//    uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
 //    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
-    if (chip == 0x60) {
+//    if (chip == 0x60) {
         bme280_takeForcedMeasurement();
         zclApp_PressureSensor_ScaledValue = (int16) (pow(10.0, (double) zclApp_PressureSensor_Scale) * (double) bme280_readPressure()* 100);
 
@@ -705,15 +707,15 @@ static void zclApp_ReadBME280Pressure(void) {
           bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, PRESSURE, ATTRID_MS_PRESSURE_MEASUREMENT_MEASURED_VALUE);
           EpdRefresh();
         }
-    } else {
-        LREPMaster("NOT BME280\r\n");
-    }
+//    } else {
+//        LREPMaster("NOT BME280\r\n");
+//    }
 }
 
 static void zclApp_ReadBME280Humidity(void) {
-    uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
+//    uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
 //    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
-    if (chip == 0x60) {
+//    if (chip == 0x60) {
         bme280_takeForcedMeasurement();
         zclApp_HumiditySensor_MeasuredValue = (uint16)(bme280_readHumidity() * 100);
 //        LREP("Humidity=%d\r\n", zclApp_HumiditySensor_MeasuredValue);
@@ -729,9 +731,9 @@ static void zclApp_ReadBME280Humidity(void) {
           bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, HUMIDITY, ATTRID_MS_RELATIVE_HUMIDITY_MEASURED_VALUE);
           EpdRefresh();
         }
-    } else {
-        LREPMaster("NOT BME280\r\n");
-    }
+//    } else {
+//        LREPMaster("NOT BME280\r\n");
+//    }
 }
 
 static void zclApp_Report(void) { osal_start_reload_timer(zclApp_TaskID, APP_READ_SENSORS_EVT, 200); }

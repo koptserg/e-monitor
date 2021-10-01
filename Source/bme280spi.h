@@ -6,8 +6,11 @@ void bme_ConfigIOInput(void);
 void bme_ConfigSPI(void);
 void bme_ConfigGP(void);
 void bme_HW_WaitUs(uint16 i);
-extern void bme280_write8(uint8 reg, uint8 data);
-extern uint8 bme280_read8(uint8 reg);
+//extern void bme280_write8(uint8 reg, uint8 data);
+void bme280_write8(uint8 reg, uint8 data);
+//extern uint8 bme280_read8(uint8 reg);
+uint8 bme280_read8(uint8 reg);
+
 uint8 LCD_SPI_WAIT_RX(void);
 uint16 bme280_read16(uint8 reg);
 uint16 bme280_read16_LE(uint8 reg);
