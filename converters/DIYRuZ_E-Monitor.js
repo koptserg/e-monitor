@@ -36,11 +36,18 @@ const postfixWithEndpointName = (name, msg, definition) => {
 };
 
 const fz = {
-    set_date: {
-        cluster: 'genPowerCfg',
+//    set_date: {
+//        cluster: 'genPowerCfg',
+//        type: ['attributeReport', 'readResponse'],
+//        convert: (model, msg, publish, options, meta) => {
+//          return {set_date: msg.data.batteryManufacturer};
+//        },
+//    },
+    local_time: {
+        cluster: 'genTime',
         type: ['attributeReport', 'readResponse'],
         convert: (model, msg, publish, options, meta) => {
-          return {set_date: msg.data.batteryManufacturer};
+          return {local_time: msg.data.time};
         },
     },
     illuminance: {
@@ -48,11 +55,6 @@ const fz = {
         type: ['attributeReport', 'readResponse'],
         convert: (model, msg, publish, options, meta) => {
           return {illuminance: msg.data.measuredValue};  //not endpoint
-//            if (msg.data.hasOwnProperty('measuredValue')) {
-//                const illuminance = msg.data['measuredValue'];
-//                const property = postfixWithEndpointName('illuminance', msg, model);
-//                return {[property]: msg.data.measuredValue};
-//            }
         },
     },
     battery_config: {
@@ -157,27 +159,33 @@ const fz = {
             return result;
         },
     },
-//    contact: {
-//        cluster: 'genBinaryInput',
-//        type: ['attributeReport', 'readResponse'],
-//        convert: (model, msg, publish, options, meta) => {
-//            return {contact: msg.data['presentValue'] !== 0};
-//        },
-//    },
 };
 
 const tz = {
-    set_date: {
-        // set delay after motion detector changes from occupied to unoccupied
-        key: ['set_date'],
+//    set_date: {
+//        // set delay after motion detector changes from occupied to unoccupied
+//        key: ['set_date'],
+//        convertSet: async (entity, key, value, meta) => {
+//            const firstEndpoint = meta.device.getEndpoint(1);
+//            await firstEndpoint.write('genPowerCfg', {batteryManufacturer: value});
+//            return {state: {set_date: value}};
+//        },
+//        convertGet: async (entity, key, meta) => {
+//            const firstEndpoint = meta.device.getEndpoint(1);
+//            await firstEndpoint.read('genPowerCfg', ['batteryManufacturer']);
+//        },
+//    },
+    local_time: {
+        // set 
+        key: ['local_time'],
         convertSet: async (entity, key, value, meta) => {
             const firstEndpoint = meta.device.getEndpoint(1);
-            await firstEndpoint.write('genPowerCfg', {batteryManufacturer: value});
-            return {state: {set_date: value}};
+            await firstEndpoint.write('genTime', {time: value});
+            return {state: {local_time: value}};
         },
         convertGet: async (entity, key, meta) => {
             const firstEndpoint = meta.device.getEndpoint(1);
-            await firstEndpoint.read('genPowerCfg', ['batteryManufacturer']);
+            await firstEndpoint.read('genTime', ['time']);
         },
     },
     occupancy_timeout: {
@@ -283,9 +291,10 @@ const device = {
         model: 'DIYRuZ_E-Monitor',
         vendor: 'DIYRuZ',
         description: '[E-Monitor sensor](https://github.com/koptserg/e-monitor)',
-        supports: 'temperature, humidity, illuminance, e-ink, pressure, battery, occupancy',
+        supports: 'temperature, humidity, illuminance, e-ink, pressure, battery, occupancy, time',
         fromZigbee: [
-            fz.set_date,
+//            fz.set_date,
+            fz.local_time,
             fz.battery_config,
             fz.temperature_config,
             fz.humidity_config,
@@ -293,12 +302,12 @@ const device = {
             fz.illuminance_config,
             fz.pressure_config,
             fromZigbeeConverters.battery,
-//            fz.contact,
             fz.occupancy,
             fz.occupancy_config,
         ],
         toZigbee: [
-            tz.set_date,
+//            tz.set_date,
+            tz.local_time,
             tz.occupancy_timeout,
             tz.unoccupancy_timeout,
             tz.illuminance_config,
@@ -316,17 +325,12 @@ const device = {
             const fourthEndpoint = device.getEndpoint(4);
             await bind(firstEndpoint, coordinatorEndpoint, [
                 'genPowerCfg',
+                'genTime',
                 'msTemperatureMeasurement',
                 'msRelativeHumidity',
                 'msPressureMeasurement',
-//                'msIlluminanceMeasurement',
             ]);
-//            await bind(secondEndpoint, coordinatorEndpoint, [
-  //                'genOnOff',
-//                'genBinaryInput',
-//            ]);
             await bind(thirdEndpoint, coordinatorEndpoint, [
-//                'genOnOff',
                 'msOccupancySensing',
             ]);
             await bind(fourthEndpoint, coordinatorEndpoint, [
@@ -345,12 +349,6 @@ const device = {
                 maximumReportInterval: 3600,
                 reportableChange: 0,
             }
-//            {
-//                attribute: 'batteryManufacturer',
-//                minimumReportInterval: 0,
-//                maximumReportInterval: 3600,
-//                reportableChange: 0,
-//            }
         ];
 
         const msBindPayload = [{
@@ -365,12 +363,6 @@ const device = {
             maximumReportInterval: 3600,
             reportableChange: 0,
         }];
-//        const genBinaryInputBindPayload = [{
-//            attribute: 'presentValue',
-//            minimumReportInterval: 0,
-//            maximumReportInterval: 3600,
-//            reportableChange: 0,
-//        }];
         const msOccupancySensingBindPayload = [{
             attribute: 'occupancy',
             minimumReportInterval: 0,
@@ -381,8 +373,6 @@ const device = {
             await firstEndpoint.configureReporting('msTemperatureMeasurement', msTemperatureBindPayload);
             await firstEndpoint.configureReporting('msRelativeHumidity', msBindPayload);
             await firstEndpoint.configureReporting('msPressureMeasurement', msBindPayload);
-//            await firstEndpoint.configureReporting('msIlluminanceMeasurement', msBindPayload);
-//            await secondEndpoint.configureReporting('genBinaryInput', genBinaryInputBindPayload);
             await thirdEndpoint.configureReporting('msOccupancySensing', msOccupancySensingBindPayload);
             await fourthEndpoint.configureReporting('msIlluminanceMeasurement', msBindPayload);
         },
@@ -391,12 +381,10 @@ const device = {
             exposes.numeric('temperature', ACCESS_STATE).withUnit('°C').withDescription('Measured temperature value'), 
             exposes.numeric('humidity', ACCESS_STATE).withUnit('%').withDescription('Measured relative humidity'),
             exposes.numeric('pressure', ACCESS_STATE).withUnit('hPa').withDescription('The measured atmospheric pressure'),
-//            exposes.numeric('illuminance_1', ACCESS_STATE).withDescription('Raw measured illuminance LDR'), 
-//            exposes.numeric('illuminance_4', ACCESS_STATE).withUnit('lx').withDescription('Measured illuminance in lux BH1750'),
-            exposes.numeric('illuminance', ACCESS_STATE).withUnit('lx').withDescription('Measured illuminance in lux BH1750'),
-//            exposes.binary('contact', ACCESS_STATE).withDescription('Indicates if the contact is closed (= true) or open (= false)'), 
+            exposes.numeric('illuminance', ACCESS_STATE).withUnit('lx').withDescription('Measured illuminance in lux BH1750'), 
             exposes.binary('occupancy', ACCESS_STATE).withDescription('Indicates whether the device detected occupancy'),
-            exposes.text('set_date', ACCESS_STATE | ACCESS_WRITE | ACCESS_READ).withDescription('Set date (format )'),
+//            exposes.text('set_date', ACCESS_STATE | ACCESS_WRITE | ACCESS_READ).withDescription('Set date (format )'),
+            exposes.numeric('local_time', ACCESS_STATE | ACCESS_WRITE | ACCESS_READ).withUnit('sec').withDescription('Date and time (number of seconds since 00:00:00, on the 1st of January 2000 UTC)'),
             exposes.numeric('occupancy_timeout', ACCESS_STATE | ACCESS_WRITE | ACCESS_READ).withUnit('sec').withDescription('Delay occupied to unoccupied + 10 sec adaptation'),
             exposes.numeric('unoccupancy_timeout', ACCESS_STATE | ACCESS_WRITE | ACCESS_READ).withUnit('sec').withDescription('Delay unoccupied to occupied'),
             exposes.numeric('illuminance_sensitivity', ACCESS_STATE | ACCESS_WRITE | ACCESS_READ).withDescription('Illuminance level sensitivity 31 - 254 (default = 69)'),
