@@ -154,7 +154,7 @@ const unsigned char lut_partial_update[159] = {
 
 void EpdSetLutFull(const unsigned char *lut) {
     EpdSetLut((const unsigned char *)lut);
-	EpdSendCommand(FUCKING_UNDESCRIBED_REGISTER);
+	EpdSendCommand(OPTION_LUT_END);
 	EpdSendData(*(lut+153));
 	EpdSendCommand(GATE_VOLTAGE_CONTROL);
 	EpdSendData(*(lut+154));

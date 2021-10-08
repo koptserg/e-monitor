@@ -55,7 +55,6 @@ extern "C" {
 #define BASIC              ZCL_CLUSTER_ID_GEN_BASIC
 #define ONOFF              ZCL_CLUSTER_ID_GEN_ON_OFF
 #define POWER_CFG          ZCL_CLUSTER_ID_GEN_POWER_CFG
-//#define BINARY_INPUT       ZCL_CLUSTER_ID_GEN_BINARY_INPUT_BASIC
 #define TEMP               ZCL_CLUSTER_ID_MS_TEMPERATURE_MEASUREMENT
 #define HUMIDITY           ZCL_CLUSTER_ID_MS_RELATIVE_HUMIDITY
 #define SOIL_HUMIDITY      0x0408
@@ -63,6 +62,7 @@ extern "C" {
 #define ILLUMINANCE        ZCL_CLUSTER_ID_MS_ILLUMINANCE_MEASUREMENT
 #define ILLUMINANCE_CONFIG ZCL_CLUSTER_ID_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG
 #define OCCUPANCY          ZCL_CLUSTER_ID_MS_OCCUPANCY_SENSING
+#define GEN_TIME           ZCL_CLUSTER_ID_GEN_TIME
 
 #define ZCL_BOOLEAN   ZCL_DATATYPE_BOOLEAN
 #define ZCL_UINT8     ZCL_DATATYPE_UINT8
@@ -74,6 +74,7 @@ extern "C" {
 #define ZCL_ENUM8     ZCL_DATATYPE_ENUM8
 #define ZCL_UNKNOWN   ZCL_DATATYPE_UNKNOWN
 #define ZCL_CHARSTR   ZCL_DATATYPE_CHAR_STR
+#define ZCL_UTC       ZCL_DATATYPE_UTC
 
 #define ATTRID_TEMPERATURE_MIN_ABSOLUTE_CHANGE 0xF001
 #define ATTRID_TEMPERATURE_PERIOD 0xF002
@@ -105,7 +106,7 @@ extern SimpleDescriptionFormat_t zclApp_FourthEP;
 
 extern uint8 zclApp_BatteryVoltage;
 extern uint8 zclApp_BatteryPercentageRemainig;
-extern uint16 zclApp_BatteryVoltageRawAdc;
+//extern uint16 zclApp_BatteryVoltageRawAdc;
 extern int16 zclApp_Temperature_Sensor_MeasuredValue;
 extern int16 zclApp_PressureSensor_MeasuredValue;
 extern int16 zclApp_PressureSensor_ScaledValue;
@@ -114,9 +115,10 @@ extern uint16 zclApp_HumiditySensor_MeasuredValue;
 //extern int16 zclApp_DS18B20_MeasuredValue;
 //extern uint16 zclApp_SoilHumiditySensor_MeasuredValue;
 //extern uint16 zclApp_SoilHumiditySensor_MeasuredValueRawAdc;
-extern uint16 zclApp_IlluminanceSensor_MeasuredValue;
-extern uint16 zclApp_IlluminanceSensor_MeasuredValueRawAdc;
+//extern uint16 zclApp_IlluminanceSensor_MeasuredValue;
+//extern uint16 zclApp_IlluminanceSensor_MeasuredValueRawAdc;
 extern uint16 zclApp_bh1750IlluminanceSensor_MeasuredValue;
+extern uint32 zclApp_GenTime_TimeUTC;
 
 //extern uint8 zclApp_Magnet_OnOff;
 //extern uint8 zclApp_Magnet;
@@ -160,7 +162,7 @@ extern const uint8 zclApp_ManufacturerName[];
 extern const uint8 zclApp_ModelId[];
 extern const uint8 zclApp_PowerSource;
 
-extern uint8 zclApp_BatteryManu[];
+//extern uint8 zclApp_BatteryManu[];
 
 // APP_TODO: Declare application specific attributes here
 

@@ -118,11 +118,6 @@ uint16 temp_PressureSensor_MeasuredValue;
 uint16 temp_PressureSensor_ScaledValue;
 uint16 temp_HumiditySensor_MeasuredValue;
 
-//unsigned long time_now_s;
-uint16 time_now_s;
-uint16 date_now;
-//uint8 month_now;
-//uint8 year_now;
 uint8 fullupdate_hour = 0;
 
 #ifdef LQI_REQ
@@ -163,6 +158,8 @@ static void _delay_ms(uint16 milliSecs);
 void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg);
 void zclApp_RequestLqi(void);
 #endif
+
+void zclApp_SetTimeDate(void);
 
 /*********************************************************************
  * ZCL General Profile Callback table
@@ -268,11 +265,8 @@ void zclApp_Init(byte task_id) {
   EpdClearFrameMemory(0xFF);
   EpdDisplayFramePartial();
 
-//  time_now_s = (('1'-48)*10 + ('3'-48))*60 + ('4'-48)*10 + ('7'-48);
-//  date_now =(('0'-48)*10 + ('0'-48))*360 + (('1'-48)*10 + ('1'-48))*30 + ('2'-48)*10 + ('7'-48);
-  time_now_s = ((zclApp_BatteryManu[12]-48)*10 + (zclApp_BatteryManu[13]-48))*60 + (zclApp_BatteryManu[15]-48)*10 + (zclApp_BatteryManu[16]-48);
-  date_now =((zclApp_BatteryManu[4]-48)*10 + (zclApp_BatteryManu[5]-48))*30 + (zclApp_BatteryManu[1]-48)*10 + (zclApp_BatteryManu[2]-48);
-
+  zclApp_SetTimeDate();
+  
   EpdRefresh();
 }
 
@@ -338,9 +332,6 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
     (void)task_id; // Intentionally unreferenced parameter
     if (events & SYS_EVENT_MSG) {
         while ((MSGpkt = (afIncomingMSGPacket_t *)osal_msg_receive(zclApp_TaskID))) {          
-//            LREP("MSGpkt->srcAddr=0x%X\r\n", MSGpkt->srcAddr);
-//            LREP("MSGpkt->macDestAddr=0x%X\r\n", MSGpkt->macDestAddr);
-//            LREP("MSGpkt->macSrcAddr=0x%X\r\n", MSGpkt->macSrcAddr);
             switch (MSGpkt->hdr.event) {
 #ifdef LQI_REQ
             case ZDO_CB_MSG:
@@ -384,11 +375,12 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
 
     if (events & APP_REPORT_CLOCK_EVT) {
         LREPMaster("APP_REPORT_CLOCK_EVT\r\n");
+        
+        osalTimeUpdate();
+        zclApp_GenTime_TimeUTC = osal_getClock();                
 #ifdef LQI_REQ        
         zclApp_RequestLqi();
 #endif        
-        //incriment clock and clear epd
-        time_now_s = time_now_s +1;
         fullupdate_hour = fullupdate_hour +1;
         if (fullupdate_hour == 5){ // over 5 min clear
           fullupdate_hour = 0;
@@ -662,9 +654,6 @@ static void zclApp_bh1750ReadLumosity(void) {
 }
 
 static void zclApp_ReadBME280Temperature(void) {
-//    uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
-//    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
-//    if (chip == 0x60) {
         bme280_takeForcedMeasurement();
         zclApp_Temperature_Sensor_MeasuredValue = (int16)(bme280_readTemperature() *100);
 //        LREP("Temperature=%d\r\n", zclApp_Temperature_Sensor_MeasuredValue);
@@ -680,15 +669,9 @@ static void zclApp_ReadBME280Temperature(void) {
           bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, TEMP, ATTRID_MS_TEMPERATURE_MEASURED_VALUE);
           EpdRefresh();
         }        
-//    } else {
-//        LREPMaster("NOT BME280\r\n");
-//    }
 }
 
 static void zclApp_ReadBME280Pressure(void) {
-//    uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
-//    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
-//    if (chip == 0x60) {
         bme280_takeForcedMeasurement();
         zclApp_PressureSensor_ScaledValue = (int16) (pow(10.0, (double) zclApp_PressureSensor_Scale) * (double) bme280_readPressure()* 100);
 
@@ -707,15 +690,9 @@ static void zclApp_ReadBME280Pressure(void) {
           bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, PRESSURE, ATTRID_MS_PRESSURE_MEASUREMENT_MEASURED_VALUE);
           EpdRefresh();
         }
-//    } else {
-//        LREPMaster("NOT BME280\r\n");
-//    }
 }
 
 static void zclApp_ReadBME280Humidity(void) {
-//    uint8 chip = bme280_read8(BME280_REGISTER_CHIPID);
-//    LREP("BME280_REGISTER_CHIPID=%d\r\n", chip);;
-//    if (chip == 0x60) {
         bme280_takeForcedMeasurement();
         zclApp_HumiditySensor_MeasuredValue = (uint16)(bme280_readHumidity() * 100);
 //        LREP("Humidity=%d\r\n", zclApp_HumiditySensor_MeasuredValue);
@@ -731,9 +708,6 @@ static void zclApp_ReadBME280Humidity(void) {
           bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, HUMIDITY, ATTRID_MS_RELATIVE_HUMIDITY_MEASURED_VALUE);
           EpdRefresh();
         }
-//    } else {
-//        LREPMaster("NOT BME280\r\n");
-//    }
 }
 
 static void zclApp_Report(void) { osal_start_reload_timer(zclApp_TaskID, APP_READ_SENSORS_EVT, 200); }
@@ -754,8 +728,7 @@ static ZStatus_t zclApp_ReadWriteAuthCB(afAddrType_t *srcAddr, zclAttrRec_t *pAt
 static void zclApp_SaveAttributesToNV(void) {
     uint8 writeStatus = osal_nv_write(NW_APP_CONFIG, 0, sizeof(application_config_t), &zclApp_Config);
     LREP("Saving attributes to NV write=%d\r\n", writeStatus);
-    time_now_s = ((zclApp_BatteryManu[12]-48)*10 + (zclApp_BatteryManu[13]-48))*60 + (zclApp_BatteryManu[15]-48)*10 + (zclApp_BatteryManu[16]-48);
-    date_now =((zclApp_BatteryManu[4]-48)*10 + (zclApp_BatteryManu[5]-48))*30 + (zclApp_BatteryManu[1]-48)*10 + (zclApp_BatteryManu[2]-48);
+    osal_setClock(zclApp_GenTime_TimeUTC);    
     EpdRefresh();
     zclApp_bh1750setMTreg();
     zclApp_StopReloadTimer();
@@ -937,21 +910,23 @@ void EpdtestRefresh(void)
 #endif
   
   // clock init Firmware build date 20/08/2021 13:47
-  if (time_now_s == 1440){
-    time_now_s = 0;
-    date_now = date_now +1;
-  }
+  // Update RTC and get new clock values
+  osalTimeUpdate();
+  UTCTimeStruct time;
+  osal_ConvertUTCTime(&time, osal_getClock());
   char time_string[] = {'0', '0', ':', '0', '0', '\0'};
-  time_string[0] = time_now_s / 60 / 10 + '0';
-  time_string[1] = time_now_s / 60 % 10 + '0';
-  time_string[3] = time_now_s % 60 / 10 + '0';
-  time_string[4] = time_now_s % 60 % 10 + '0';
+  time_string[0] = time.hour / 10 % 10 + '0';
+  time_string[1] = time.hour % 10 + '0';
+  time_string[3] = time.minutes / 10 % 10 + '0';
+  time_string[4] = time.minutes % 10 + '0';
   
-  char date_string[] = {'0', '0', '.', '0', '0', '.', '2', '1', '\0'};
-  date_string[0] = date_now/10 % 3  + '0';
-  date_string[1] = date_now % 10 + '0';
-  date_string[3] = date_now/30/10 % 2 + '0';
-  date_string[4] = date_now/30 % 10 + '0';
+  char date_string[] = {'0', '0', '.', '0', '0', '.', '0', '0', '\0'};
+  date_string[0] = time.day /10 % 10  + '0';
+  date_string[1] = time.day % 10 + '0';
+  date_string[3] = time.month / 10 % 10 + '0';
+  date_string[4] = time.month % 10 + '0';
+  date_string[6] = time.year / 10 % 10 + '0';
+  date_string[7] = time.year % 10 + '0';
 
   PaintSetWidth(24);
   PaintSetHeight(85);
@@ -1108,6 +1083,23 @@ void EpdtestRefresh(void)
   EpdDisplayFramePartial();
 
   EpdSleep();
+}
+
+void zclApp_SetTimeDate(void){
+  // Set Time and Date
+  UTCTimeStruct time;
+   time.seconds = 00;
+   time.minutes = (zclApp_DateCode[15]-48)*10 + (zclApp_DateCode[16]-48);
+   time.hour = (zclApp_DateCode[12]-48)*10 + (zclApp_DateCode[13]-48);
+   time.day = (zclApp_DateCode[1]-48)*10 + (zclApp_DateCode[2]-48);
+   time.month = (zclApp_DateCode[4]-48)*10 + (zclApp_DateCode[5]-48);
+   time.year = 2000+(zclApp_DateCode[9]-48)*10 + (zclApp_DateCode[10]-48);
+  // Update OSAL time
+  osal_setClock( osal_ConvertUTCSecs( &time ) );
+  // Get time structure from OSAL
+  osal_ConvertUTCTime( &time, osal_getClock() );
+  osalTimeUpdate();
+  zclApp_GenTime_TimeUTC = osal_getClock();
 }
 
 /****************************************************************************

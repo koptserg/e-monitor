@@ -33,7 +33,7 @@
 #define SET_DUMMY_LINE_PERIOD                       0x3A
 #define SET_GATE_TIME                               0x3B
 #define BORDER_WAVEFORM_CONTROL                     0x3C
-#define FUCKING_UNDESCRIBED_REGISTER                0x3F
+#define OPTION_LUT_END                              0x3F
 #define SET_RAM_X_ADDRESS_START_END_POSITION        0x44
 #define SET_RAM_Y_ADDRESS_START_END_POSITION        0x45
 #define SET_RAM_X_ADDRESS_COUNTER                   0x4E
