@@ -121,7 +121,7 @@ uint16 temp_HumiditySensor_MeasuredValue;
 uint8 fullupdate_hour = 0;
 
 #ifdef LQI_REQ
-uint8 lqi = 0;
+uint8 zclApp_lqi = 0;
 uint8 zclApp_startIndex = 0;
 #endif
 afAddrType_t inderect_DstAddr = {.addrMode = (afAddrMode_t)AddrNotPresent, .endPoint = 0, .addr.shortAddr = 0};
@@ -275,28 +275,36 @@ void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg){
   
   switch (InMsg->clusterID){
     case Mgmt_Lqi_rsp:
-      LREP("InMsg->clusterID=0x%X\r\n", InMsg->clusterID);      
+//      LREP("InMsg->clusterID=0x%X\r\n", InMsg->clusterID);      
     {
       ZDO_MgmtLqiRsp_t *LqRsp;
       uint8 num;
+      uint8 find = 0;
       uint8 i;
       uint8 EndDevice_Lqi;
 
       LqRsp = ZDO_ParseMgmtLqiRsp(InMsg);
 
       num = LqRsp->neighborLqiCount;
+      LREP("neighborLqiCount=%d\r\n",LqRsp->neighborLqiCount);
       LREP("startIndex=%d\r\n",LqRsp->startIndex);
-      for(i= 0; i < num; i++)
-      {
-        if (LqRsp->list[i].nwkAddr == _NIB.nwkDevAddress) {
-          EndDevice_Lqi = LqRsp->list[i].lqi;
-          lqi = EndDevice_Lqi;
-          zclApp_startIndex = LqRsp->startIndex;
-        } else {
-          zclApp_startIndex = zclApp_startIndex + 1;
+      if (num != 0) {
+        for(i= 0; i < num && find == 0; i++)
+        {
+          if (LqRsp->list[i].nwkAddr == _NIB.nwkDevAddress) {
+            EndDevice_Lqi = LqRsp->list[i].lqi;
+            zclApp_lqi = EndDevice_Lqi;
+            zclApp_startIndex = LqRsp->startIndex;
+            find = 1;
+          } else {
+            zclApp_startIndex = zclApp_startIndex + 1;
+          }
+          LREP("nwkAddr=0x%X\r\n", LqRsp->list[i].nwkAddr);
+          LREP("lqi=%d\r\n", LqRsp->list[i].lqi);
         }
-        LREP("nwkAddr=0x%X\r\n", LqRsp->list[i].nwkAddr);
-        LREP("lqi=%d\r\n", LqRsp->list[i].lqi);
+      } else {
+        zclApp_startIndex = 0;
+        zclApp_lqi = 0;
       }
       osal_mem_free(LqRsp);      
       
@@ -318,9 +326,13 @@ void zclApp_RequestLqi(void){
         uint8 startIndex;
         /* Dev address */
         destAddr.addrMode = Addr16Bit;
-        destAddr.addr.shortAddr = 0; // Coordinator always address 0
+//        destAddr.addr.shortAddr = 0; // Coordinator always address 0
+        destAddr.addr.shortAddr = _NIB.nwkCoordAddress; // Parent
         startIndex = zclApp_startIndex;
-        ZDP_MgmtLqiReq(&destAddr,startIndex,0);
+        ZDP_MgmtLqiReq(&destAddr,startIndex, 0);
+//        ZDP_MgmtLqiReq(&destAddr,startIndex, AF_EN_SECURITY);
+        zclApp_lqi = 0;
+        LREP("REQ_sI=%d\r\n", zclApp_startIndex);
   }
 }
 #endif
@@ -334,7 +346,7 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
         while ((MSGpkt = (afIncomingMSGPacket_t *)osal_msg_receive(zclApp_TaskID))) {          
             switch (MSGpkt->hdr.event) {
 #ifdef LQI_REQ
-            case ZDO_CB_MSG:
+            case ZDO_CB_MSG: // ZDO incoming message callback
                 zclApp_ProcessZDOMsgs((zdoIncomingMsg_t *)MSGpkt);
                 LREP("MSGpkt->hdr.event=0x%X\r\n", MSGpkt->hdr.event);
 
@@ -344,10 +356,17 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
                 zclApp_HandleKeys(((keyChange_t *)MSGpkt)->state, ((keyChange_t *)MSGpkt)->keys);
                 
                 break;
-            case ZDO_STATE_CHANGE:              
+            case ZDO_STATE_CHANGE: //devStates_t ZDApp.h             
                 zclApp_NwkState = (devStates_t)(MSGpkt->hdr.status);
                 LREP("NwkState=%d\r\n", zclApp_NwkState);
+//                if (zclApp_NwkState == DEV_NWK_SEC_REJOIN_CURR_CHANNEL) {
+//                  zclApp_startIndex = 0;
+//                  zclApp_lqi = 0;
+//                }
                 if (zclApp_NwkState == DEV_END_DEVICE) {
+                  zclApp_startIndex = 0;
+                  zclApp_lqi = 0;
+                  EpdRefresh();
                   IEN2 |= HAL_KEY_BIT4; // enable port1 int
                   P1DIR |=  BV(0); // P1_0 output
                   P1 |=  BV(0);   // power on DD
@@ -835,9 +854,9 @@ void EpdtestRefresh(void)
 #ifdef LQI_REQ  
   // LQI 
   char lqi_string[] = {'0', '0', '0', '\0'};
-  lqi_string[0] = lqi / 100 % 10 + '0';
-  lqi_string[1] = lqi / 10 % 10 + '0';
-  lqi_string[2] = lqi % 10 + '0';
+  lqi_string[0] = zclApp_lqi / 100 % 10 + '0';
+  lqi_string[1] = zclApp_lqi / 10 % 10 + '0';
+  lqi_string[2] = zclApp_lqi % 10 + '0';
   
   PaintSetWidth(16);
   PaintSetHeight(36);
@@ -873,7 +892,25 @@ void EpdtestRefresh(void)
   if ((_NIB.nwkDevAddress %16) > 9){
     nwk_string[5] = nwk_string[5]+7;
   }
-  
+  // nwkCoordAddress
+  nwk_string[9] = _NIB.nwkCoordAddress / 4096 %16 + '0';
+  if ((_NIB.nwkCoordAddress/4096 %16) > 9){
+    nwk_string[9] = nwk_string[9]+7;
+  }
+  nwk_string[10] = _NIB.nwkCoordAddress / 256 %16 + '0';
+  if ((_NIB.nwkCoordAddress/256 %16) > 9){
+    nwk_string[10] = nwk_string[10]+7;
+  }
+  nwk_string[11] = _NIB.nwkCoordAddress / 16 %16 + '0';
+  if ((_NIB.nwkCoordAddress/16 %16) > 9){
+    nwk_string[11] = nwk_string[11]+7;
+  }
+  nwk_string[12] = _NIB.nwkCoordAddress %16 + '0';
+  if ((_NIB.nwkCoordAddress %16) > 9){
+    nwk_string[12] = nwk_string[12]+7;
+  }
+/* 
+  // nwkPanId 
   nwk_string[9] = _NIB.nwkPanId / 4096 %16 + '0';
   if ((_NIB.nwkPanId/4096 %16) > 9){
     nwk_string[9] = nwk_string[9]+7;
@@ -890,7 +927,7 @@ void EpdtestRefresh(void)
   if ((_NIB.nwkPanId %16) > 9){
     nwk_string[12] = nwk_string[12]+7;
   }
-  
+*/  
   nwk_string[14] = _NIB.nwkLogicalChannel / 10 %10 + '0';
   nwk_string[15] = _NIB.nwkLogicalChannel %10 + '0';
   

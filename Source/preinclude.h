@@ -98,7 +98,9 @@
 #ifdef DO_DEBUG_UART
 #define HAL_UART TRUE
 #define HAL_UART_DMA 1
+#ifndef LQI_REQ
 #define INT_HEAP_LEN (2685 - 0x4B - 0xBB)
+#endif
 #endif
 
 #ifdef DO_DEBUG_MT
