@@ -69,9 +69,9 @@
 #define MOTION_POWER_PORT 1
 #define MOTION_POWER_PIN  0
 
-#define EPD2IN9
+//#define EPD2IN9
 //#define EPD2IN9V2
-//#define EPD2IN13V2
+#define EPD2IN13V2
 //#define EPD1IN54V2
 
 //spi BME280, EPD

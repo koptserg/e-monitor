@@ -53,6 +53,8 @@
 #include "epd1in54v2.h"
 #endif
 
+#define HAL_LCD_BUSY BNAME(HAL_LCD_BUSY_PORT, HAL_LCD_BUSY_PIN)
+
 #include "imagedata.h"
 #include "epdpaint.h"
 
@@ -118,6 +120,7 @@ uint16 temp_PressureSensor_MeasuredValue;
 uint16 temp_PressureSensor_ScaledValue;
 uint16 temp_HumiditySensor_MeasuredValue;
 
+bool EpdDetect = 1; 
 uint8 fullupdate_hour = 0;
 
 #ifdef LQI_REQ
@@ -246,28 +249,39 @@ void zclApp_Init(byte task_id) {
     zclApp_StartReloadTimer();
     osal_start_reload_timer(zclApp_TaskID, APP_REPORT_CLOCK_EVT, 60000);
     
-  // epd full screen
-  EpdInitFull();
-
-  EpdSetFrameMemoryBase(IMAGE_DATA);
-  EpdDisplayFrame();
-  _delay_ms(2000);
-  EpdClearFrameMemory(0xFF);
-  EpdDisplayFrame();
-  EpdClearFrameMemory(0xFF);
-  EpdDisplayFrame();
+  // check epd
+  EpdReset();
+  uint8 error_time = 25; // over 2.5 sec return
+  while(HAL_LCD_BUSY == 1) {      //LOW: idle, HIGH: busy
+    _delay_ms(100);
+    error_time = error_time - 1;
+    if (error_time == 0){    
+      EpdDetect = 0;
+      break;
+    }
+  }   
   
-  // epd partial screen
-
-  EpdInitPartial();
-  EpdClearFrameMemory(0xFF);
-  EpdDisplayFramePartial();
-  EpdClearFrameMemory(0xFF);
-  EpdDisplayFramePartial();
-
-  zclApp_SetTimeDate();
+  if (EpdDetect == 1) {  
+    // epd full screen
+    EpdInitFull();
+    EpdSetFrameMemoryBase(IMAGE_DATA);
+    EpdDisplayFrame();
+    _delay_ms(2000);
+    EpdClearFrameMemory(0xFF);
+    EpdDisplayFrame();
+    EpdClearFrameMemory(0xFF);
+    EpdDisplayFrame();
   
-  EpdRefresh();
+    // epd partial screen
+    EpdInitPartial();
+    EpdClearFrameMemory(0xFF);
+    EpdDisplayFramePartial();
+    EpdClearFrameMemory(0xFF);
+    EpdDisplayFramePartial();
+
+    zclApp_SetTimeDate();  
+    EpdRefresh();
+  }
 }
 
 #ifdef LQI_REQ
@@ -399,24 +413,27 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
         zclApp_GenTime_TimeUTC = osal_getClock();                
 #ifdef LQI_REQ        
         zclApp_RequestLqi();
-#endif        
-        fullupdate_hour = fullupdate_hour +1;
-        if (fullupdate_hour == 5){ // over 5 min clear
+#endif 
+        if (EpdDetect == 1) {
+          fullupdate_hour = fullupdate_hour +1;
+          if (fullupdate_hour == 5){ // over 5 min clear
           fullupdate_hour = 0;
-          // epd full screen
-          EpdInitFull();
-          EpdClearFrameMemory(0xFF);
-          EpdDisplayFrame();
-          EpdClearFrameMemory(0xFF);
-          EpdDisplayFrame();
-          // epd partial screen
-          EpdInitPartial();
-          EpdClearFrameMemory(0xFF);
-          EpdDisplayFramePartial();
-          EpdClearFrameMemory(0xFF);
-          EpdDisplayFramePartial();
+            // epd full screen
+            EpdInitFull();
+            EpdClearFrameMemory(0xFF);
+            EpdDisplayFrame();
+            EpdClearFrameMemory(0xFF);
+            EpdDisplayFrame();
+            // epd partial screen
+            EpdInitPartial();
+            EpdClearFrameMemory(0xFF);
+            EpdDisplayFramePartial();
+            EpdClearFrameMemory(0xFF);
+            EpdDisplayFramePartial();
+        
+          }
+          EpdRefresh();
         }
-        EpdRefresh();
 
         return (events ^ APP_REPORT_CLOCK_EVT);
     }
@@ -806,7 +823,9 @@ static void zclApp_bh1750setMTreg(void) {
 }
 
 static void EpdRefresh(void){
-  osal_start_timerEx(zclApp_TaskID, APP_EPD_DELAY_EVT, 2000);
+  if (EpdDetect == 1) {
+    osal_start_timerEx(zclApp_TaskID, APP_EPD_DELAY_EVT, 2000);
+  }
 }
 
 static void _delay_us(uint16 microSecs)
