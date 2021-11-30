@@ -69,6 +69,7 @@ uint8 zclApp_Occupied = 0;
 #define DEFAULT_MsHumidityPeriod 10
 #define DEFAULT_MsIlluminancePeriod 10
 #define DEFAULT_CfgBatteryPeriod 30 // min
+#define DEFAULT_HvacUiDisplayMode 1 // not invert
 application_config_t zclApp_Config = {.PirOccupiedToUnoccupiedDelay = DEFAULT_PirOccupiedToUnoccupiedDelay,
                                       .PirUnoccupiedToOccupiedDelay = DEFAULT_PirUnoccupiedToOccupiedDelay,
                                       .MsIlluminanceLevelSensingSensitivity = DEFAULT_MsIlluminanceLevelSensingSensitivity,
@@ -80,7 +81,8 @@ application_config_t zclApp_Config = {.PirOccupiedToUnoccupiedDelay = DEFAULT_Pi
                                       .MsPressurePeriod = DEFAULT_MsPressurePeriod,
                                       .MsHumidityPeriod = DEFAULT_MsHumidityPeriod,
                                       .MsIlluminancePeriod = DEFAULT_MsIlluminancePeriod,
-                                      .CfgBatteryPeriod = DEFAULT_CfgBatteryPeriod
+                                      .CfgBatteryPeriod = DEFAULT_CfgBatteryPeriod,
+                                      .HvacUiDisplayMode = DEFAULT_HvacUiDisplayMode
 };
 
 // Basic Cluster
@@ -115,6 +117,8 @@ CONST zclAttrRec_t zclApp_AttrsFirstEP[] = {
     {POWER_CFG, {ATTRID_POWER_CFG_BATTERY_PERIOD, ZCL_UINT16, RRW, (void *)&zclApp_Config.CfgBatteryPeriod}},
 
     {GEN_TIME, {ATTRID_TIME_TIME, ZCL_UTC, RRW, (void *)&zclApp_GenTime_TimeUTC}},
+    
+    {HVAC_UI_CONFIG, {ATTRID_HVAC_THERMOSTAT_UI_CONFIG_DISPLAY_MODE, ZCL_BOOLEAN, RRW, (void *)&zclApp_Config.HvacUiDisplayMode}},
     
     {TEMP, {ATTRID_MS_TEMPERATURE_MEASURED_VALUE, ZCL_INT16, RR, (void *)&zclApp_Temperature_Sensor_MeasuredValue}},
     {TEMP, {ATTRID_TEMPERATURE_MIN_ABSOLUTE_CHANGE, ZCL_UINT16, RRW, (void *)&zclApp_Config.MsTemperatureMinAbsoluteChange}},
@@ -161,7 +165,7 @@ const cId_t zclApp_InClusterList[] = {ZCL_CLUSTER_ID_GEN_BASIC};
 
 #define APP_MAX_INCLUSTERS (sizeof(zclApp_InClusterList) / sizeof(zclApp_InClusterList[0]))
 
-const cId_t zclApp_OutClusterListFirstEP[] = {POWER_CFG, GEN_TIME, TEMP, PRESSURE, HUMIDITY};
+const cId_t zclApp_OutClusterListFirstEP[] = {POWER_CFG, GEN_TIME, HVAC_UI_CONFIG, TEMP, PRESSURE, HUMIDITY};
 //const cId_t zclApp_OutClusterListSecondEP[] = {ONOFF, BINARY_INPUT};
 const cId_t zclApp_OutClusterListThirdEP[] = {ONOFF, ZCL_CLUSTER_ID_MS_OCCUPANCY_SENSING};
 const cId_t zclApp_OutClusterListFourthEP[] = {ILLUMINANCE};
@@ -234,5 +238,6 @@ void zclApp_ResetAttributesToDefaultValues(void) {
     zclApp_Config.MsPressurePeriod = DEFAULT_MsPressurePeriod;
     zclApp_Config.MsHumidityPeriod = DEFAULT_MsHumidityPeriod;
     zclApp_Config.MsIlluminancePeriod = DEFAULT_MsIlluminancePeriod;
-    zclApp_Config.CfgBatteryPeriod = DEFAULT_CfgBatteryPeriod;    
+    zclApp_Config.CfgBatteryPeriod = DEFAULT_CfgBatteryPeriod;
+    zclApp_Config.HvacUiDisplayMode = DEFAULT_HvacUiDisplayMode;    
 }

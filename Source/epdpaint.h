@@ -23,6 +23,8 @@ extern    int  PaintGetHeight(void);
 extern    void PaintSetHeight(int height);
     int  GetRotate(void);
 extern    void PaintSetRotate(int rotate);
+extern    void PaintSetInvert(int invert);
+
 extern    unsigned char* PaintGetImage(void);
 extern    void PaintDrawAbsolutePixel(int x, int y, int colored);
 extern    void PaintDrawPixel(int x, int y, int colored);
@@ -42,5 +44,6 @@ extern    unsigned char* image[672];
 extern    int pwidth;
 extern    int pheight;
 extern    int protate;
+extern    int pinvert;
 
 #endif

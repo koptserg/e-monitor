@@ -6,8 +6,10 @@ unsigned char* pimage;
 int pwidth ;
 int pheight ;
 int protate ;
+int pinvert;
 
 void PaintPaint(unsigned char* image, int width, int height) {
+    pinvert = IF_INVERT_COLOR;
     protate = ROTATE_0;
     pimage = image;
     /* 1 byte = 8 pixels, so the width should be the multiple of 8 */
@@ -105,11 +107,16 @@ void PaintDrawPixel(int x, int y, int colored) {
     }
 }
 
+void PaintSetInvert(int invert) {
+  pinvert = invert;
+}
+
 void PaintDrawAbsolutePixel(int x, int y, int colored) {
     if (x < 0 || x >= pwidth || y < 0 || y >= pheight) {
         return;
     }
-    if (IF_INVERT_COLOR) {
+//    if (IF_INVERT_COLOR) {
+    if (pinvert) {
         if (colored) {
             pimage[(x + y * pwidth) / 8] |= 0x80 >> (x % 8);
         } else {

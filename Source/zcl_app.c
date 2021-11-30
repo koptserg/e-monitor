@@ -16,6 +16,7 @@
 #include "zcl_general.h"
 #include "zcl_lighting.h"
 #include "zcl_ms.h"
+#include "zcl_hvac.h"
 
 #include "bdb.h"
 #include "bdb_interface.h"
@@ -122,6 +123,7 @@ uint16 temp_HumiditySensor_MeasuredValue;
 
 bool EpdDetect = 1; 
 uint8 fullupdate_hour = 0;
+uint8 zclApp_color = 1;
 
 #ifdef LQI_REQ
 uint8 zclApp_lqi = 0;
@@ -163,6 +165,7 @@ void zclApp_RequestLqi(void);
 #endif
 
 void zclApp_SetTimeDate(void);
+void zclApp_EpdUpdateClock(void);
 
 /*********************************************************************
  * ZCL General Profile Callback table
@@ -261,22 +264,27 @@ void zclApp_Init(byte task_id) {
     }
   }   
   
-  if (EpdDetect == 1) {  
+  if (EpdDetect == 1) { 
+    if (zclApp_Config.HvacUiDisplayMode){
+      zclApp_color = 0xFF;
+    } else {
+      zclApp_color = 0x00;
+    }
     // epd full screen
     EpdInitFull();
-    EpdSetFrameMemoryBase(IMAGE_DATA);
+    EpdSetFrameMemoryBase(IMAGE_DATA, zclApp_Config.HvacUiDisplayMode);
     EpdDisplayFrame();
     _delay_ms(2000);
-    EpdClearFrameMemory(0xFF);
+    EpdClearFrameMemory(zclApp_color);
     EpdDisplayFrame();
-    EpdClearFrameMemory(0xFF);
+    EpdClearFrameMemory(zclApp_color);
     EpdDisplayFrame();
   
     // epd partial screen
     EpdInitPartial();
-    EpdClearFrameMemory(0xFF);
+    EpdClearFrameMemory(zclApp_color);
     EpdDisplayFramePartial();
-    EpdClearFrameMemory(0xFF);
+    EpdClearFrameMemory(zclApp_color);
     EpdDisplayFramePartial();
 
     zclApp_SetTimeDate();  
@@ -351,6 +359,28 @@ void zclApp_RequestLqi(void){
 }
 #endif
 
+void zclApp_EpdUpdateClock(void) {
+        if (EpdDetect == 1) {
+          if (zclApp_Config.HvacUiDisplayMode){
+              zclApp_color = 0xFF;
+          } else {
+              zclApp_color = 0x00;
+          }
+            // epd full screen
+            EpdInitFull();
+            EpdClearFrameMemory(zclApp_color);
+            EpdDisplayFrame();
+            EpdClearFrameMemory(zclApp_color);
+            EpdDisplayFrame();
+            // epd partial screen
+            EpdInitPartial();
+            EpdClearFrameMemory(zclApp_color);
+            EpdDisplayFramePartial();
+            EpdClearFrameMemory(zclApp_color);
+            EpdDisplayFramePartial();        
+        }
+}
+
 uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
     afIncomingMSGPacket_t *MSGpkt;
     devStates_t zclApp_NwkState; //---
@@ -414,26 +444,12 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
 #ifdef LQI_REQ        
         zclApp_RequestLqi();
 #endif 
-        if (EpdDetect == 1) {
-          fullupdate_hour = fullupdate_hour +1;
-          if (fullupdate_hour == 5){ // over 5 min clear
+        fullupdate_hour = fullupdate_hour +1;
+        if (fullupdate_hour == 5){ // over 5 min clear
+          zclApp_EpdUpdateClock();
           fullupdate_hour = 0;
-            // epd full screen
-            EpdInitFull();
-            EpdClearFrameMemory(0xFF);
-            EpdDisplayFrame();
-            EpdClearFrameMemory(0xFF);
-            EpdDisplayFrame();
-            // epd partial screen
-            EpdInitPartial();
-            EpdClearFrameMemory(0xFF);
-            EpdDisplayFramePartial();
-            EpdClearFrameMemory(0xFF);
-            EpdDisplayFramePartial();
-        
-          }
-          EpdRefresh();
         }
+        EpdRefresh();
 
         return (events ^ APP_REPORT_CLOCK_EVT);
     }
@@ -764,7 +780,8 @@ static ZStatus_t zclApp_ReadWriteAuthCB(afAddrType_t *srcAddr, zclAttrRec_t *pAt
 static void zclApp_SaveAttributesToNV(void) {
     uint8 writeStatus = osal_nv_write(NW_APP_CONFIG, 0, sizeof(application_config_t), &zclApp_Config);
     LREP("Saving attributes to NV write=%d\r\n", writeStatus);
-    osal_setClock(zclApp_GenTime_TimeUTC);    
+    osal_setClock(zclApp_GenTime_TimeUTC);
+    zclApp_EpdUpdateClock();    
     EpdRefresh();
     zclApp_bh1750setMTreg();
     zclApp_StopReloadTimer();
@@ -847,6 +864,8 @@ static void _delay_ms(uint16 milliSecs)
 void EpdtestRefresh(void)
 {   
   EpdReset(); //disable sleep EPD
+  PaintSetInvert(zclApp_Config.HvacUiDisplayMode);
+  
   //status network
 #if defined(EPD1IN54V2)
   if ( bdbAttributes.bdbNodeIsOnANetwork ){
@@ -857,9 +876,9 @@ void EpdtestRefresh(void)
 #endif
 #if defined(EPD2IN13V2)
   if ( bdbAttributes.bdbNodeIsOnANetwork ){
-    EpdSetFrameMemoryXY(IMAGE_ONNETWORK, 106, 0, 16, 16);
+    EpdSetFrameMemoryImageXY(IMAGE_ONNETWORK, 106, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   } else {
-    EpdSetFrameMemoryXY(IMAGE_OFFNETWORK, 106, 0, 16, 16);
+    EpdSetFrameMemoryImageXY(IMAGE_OFFNETWORK, 106, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   }
 #endif
 #if defined(EPD2IN9) || defined(EPD2IN9V2)

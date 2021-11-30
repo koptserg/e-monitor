@@ -63,6 +63,7 @@ extern "C" {
 //#define ILLUMINANCE_CONFIG ZCL_CLUSTER_ID_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG
 #define OCCUPANCY          ZCL_CLUSTER_ID_MS_OCCUPANCY_SENSING
 #define GEN_TIME           ZCL_CLUSTER_ID_GEN_TIME
+#define HVAC_UI_CONFIG     ZCL_CLUSTER_ID_HVAC_USER_INTERFACE_CONFIG
 
 #define ZCL_BOOLEAN   ZCL_DATATYPE_BOOLEAN
 #define ZCL_UINT8     ZCL_DATATYPE_UINT8
@@ -86,6 +87,7 @@ extern "C" {
 #define ATTRID_ILLUMINANCE_MIN_ABSOLUTE_CHANGE 0xF001
 #define ATTRID_ILLUMINANCE_PERIOD 0xF002
 #define ATTRID_POWER_CFG_BATTERY_PERIOD 0xF003
+#define ATTRID_HVAC_THERMOSTAT_UI_CONFIG_DISPLAY_MODE 0xF004
   
 //#define ATTRID_GEN_BINARY_INPUT_PRESENTVALUE 0x55
 
@@ -143,6 +145,7 @@ typedef struct
     uint16 MsHumidityPeriod;
     uint16 MsIlluminancePeriod;
     uint16 CfgBatteryPeriod;
+    bool HvacUiDisplayMode;
 }  application_config_t;
 
 extern application_config_t zclApp_Config;
