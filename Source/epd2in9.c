@@ -155,8 +155,63 @@ void EpdSetFrameMemory(const unsigned char* image_buffer) {
     }
 }
 
-void EpdSetFrameMemoryBase(const unsigned char* image_buffer) {
-    EpdSetFrameMemory((const unsigned char*) image_buffer);  
+void EpdSetFrameMemoryBase(const unsigned char* image_buffer, uint8 invert) {
+    EpdSetMemoryArea(0, 0, epd_width - 1, epd_height - 1);
+    EpdSetMemoryPointer(0, 0);
+    EpdSendCommand(WRITE_RAM);
+    /* send the image data */
+    for (int i = 0; i < epd_width / 8 * epd_height; i++) {
+      uint8 inv_image = image_buffer[i];
+      if (invert){
+        inv_image ^= 0x00;  
+      } else {  
+        inv_image ^= 0xFF;
+      }
+      EpdSendData((uint8)( inv_image ));
+//        EpdSendData((uint8)(image_buffer[i]));
+    }  
+}
+
+void EpdSetFrameMemoryImageXY(const unsigned char* image_buffer, int x, int y, int image_width, int image_height, uint8 invert) {
+    int x_end;
+    int y_end;
+
+    if (
+        image_buffer == NULL ||
+        x < 0 || image_width < 0 ||
+        y < 0 || image_height < 0
+    ) {
+        return;
+    }
+    /* x point must be the multiple of 8 or the last 3 bits will be ignored */
+    x &= 0xF8;
+    image_width &= 0xF8;
+    if (x + image_width >= epd_width) {
+        x_end = epd_width - 1;
+    } else {
+        x_end = x + image_width - 1;
+    }
+    if (y + image_height >= epd_height) {
+        y_end = epd_height - 1;
+    } else {
+        y_end = y + image_height - 1;
+    }
+    EpdSetMemoryArea(x, y, x_end, y_end);
+    EpdSetMemoryPointer(x, y);
+    EpdSendCommand(WRITE_RAM);
+    /* send the image data */
+    for (int j = 0; j < y_end - y + 1; j++) {
+        for (int i = 0; i < (x_end - x + 1) / 8; i++) {
+          uint8 inv_image = image_buffer[i + j * (image_width / 8)];
+          if (invert){
+            inv_image ^= 0x00;  
+          } else {  
+            inv_image ^= 0xFF;
+          }
+          EpdSendData((uint8)( inv_image ));
+//            EpdSendData(image_buffer[i + j * (image_width / 8)]);
+        }
+    }
 }
 
 void EpdSetFrameMemoryXY(const unsigned char* image_buffer, int x, int y, int image_width, int image_height) {

@@ -306,9 +306,9 @@ void EpdSetFrameMemoryBase(const unsigned char* image_buffer, uint8 invert) {
   for (int i = 0; i < epd_width / 8 * epd_height; i++) {
     uint8 inv_image = image_buffer[i];
     if (invert){
-    inv_image ^= 0x00;  
+      inv_image ^= 0x00;  
     } else {  
-    inv_image ^= 0xFF;
+      inv_image ^= 0xFF;
     }
     EpdSendData((uint8)( inv_image ));
 //    EpdSendData((uint8)(image_buffer[i]));

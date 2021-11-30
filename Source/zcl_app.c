@@ -869,9 +869,9 @@ void EpdtestRefresh(void)
   //status network
 #if defined(EPD1IN54V2)
   if ( bdbAttributes.bdbNodeIsOnANetwork ){
-    EpdSetFrameMemoryXY(IMAGE_ONNETWORK, 184, 0, 16, 16);
+    EpdSetFrameMemoryImageXY(IMAGE_ONNETWORK, 184, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   } else {
-    EpdSetFrameMemoryXY(IMAGE_OFFNETWORK, 184, 0, 16, 16);
+    EpdSetFrameMemoryImageXY(IMAGE_OFFNETWORK, 184, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   }
 #endif
 #if defined(EPD2IN13V2)
@@ -883,9 +883,9 @@ void EpdtestRefresh(void)
 #endif
 #if defined(EPD2IN9) || defined(EPD2IN9V2)
   if ( bdbAttributes.bdbNodeIsOnANetwork ){
-    EpdSetFrameMemoryXY(IMAGE_ONNETWORK, 112, 0, 16, 16);
+    EpdSetFrameMemoryImageXY(IMAGE_ONNETWORK, 112, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   } else {
-    EpdSetFrameMemoryXY(IMAGE_OFFNETWORK, 112, 0, 16, 16);
+    EpdSetFrameMemoryImageXY(IMAGE_OFFNETWORK, 112, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   }
 #endif
 
@@ -902,13 +902,13 @@ void EpdtestRefresh(void)
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, lqi_string, &Font16, COLORED); 
 #if defined(EPD2IN9) || defined(EPD2IN9V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 112, 18, PaintGetWidth(), PaintGetHeight()); 
+  EpdSetFrameMemoryXY(PaintGetImage(), 110, 18, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 106, 18, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 184, 18, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 182, 18, PaintGetWidth(), PaintGetHeight());
 #endif
 #endif  //LQI_REQ
   
@@ -975,13 +975,13 @@ void EpdtestRefresh(void)
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, nwk_string, &Font16, COLORED); 
 #if defined(EPD2IN9) || defined(EPD2IN9V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 112, 64, PaintGetWidth(), PaintGetHeight()); 
+  EpdSetFrameMemoryXY(PaintGetImage(), 110, 64, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 106, 64, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 184, 64, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 182, 56, PaintGetWidth(), PaintGetHeight());
 #endif
   
   // clock init Firmware build date 20/08/2021 13:47
@@ -1012,7 +1012,7 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 70, 10, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 170, 70, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 154, 70, PaintGetWidth(), PaintGetHeight());
 #endif
   
   PaintSetWidth(16);
@@ -1024,7 +1024,7 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 50, 8, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 150, 68, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 138, 68, PaintGetWidth(), PaintGetHeight());
 #endif
   
   //percentage
@@ -1042,7 +1042,7 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 17, 36, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 120, 96, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 112, 96, PaintGetWidth(), PaintGetHeight());
 #endif
   
   // Occupancy

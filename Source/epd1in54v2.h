@@ -55,9 +55,10 @@ extern    void WaitUntilIdle(void);
 extern    void EpdReset(void);
 
 extern    void EpdSetFrameMemoryXY(const unsigned char* image_buffer,int x, int y, int image_width, int image_height);
+extern    void EpdSetFrameMemoryImageXY(const unsigned char* image_buffer, int x, int y, int image_width, int image_height, uint8 invert);
 
 extern    void EpdSetFrameMemory(const unsigned char* image_buffer);
-extern    void EpdSetFrameMemoryBase(const unsigned char* image_buffer);
+extern    void EpdSetFrameMemoryBase(const unsigned char* image_buffer, uint8 invert);
 extern    void EpdClearFrameMemory(unsigned char color);
 extern    void EpdClearFrameMemoryF(unsigned char color);
 extern    void EpdDisplayFrame(void);
