@@ -145,6 +145,7 @@ static void zclApp_StartReloadTimer(void);
 
 static ZStatus_t zclApp_ReadWriteAuthCB(afAddrType_t *srcAddr, zclAttrRec_t *pAttr, uint8 oper);
 
+static void zclApp_LocalTime(void);
 static void zclApp_ReadSensors(void);
 static void zclApp_ReadBME280Temperature(void);
 static void zclApp_ReadBME280Pressure(void);
@@ -449,6 +450,7 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
           zclApp_EpdUpdateClock();
           fullupdate_hour = 0;
         }
+        zclApp_LocalTime();
         EpdRefresh();
 
         return (events ^ APP_REPORT_CLOCK_EVT);
@@ -661,8 +663,16 @@ static void zclApp_ReadSensors(void) {
         zclApp_bh1750StartLumosity();
       }      
         break;
+     case 6:
+      if (EpdDetect == 1){
+        bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, HVAC_UI_CONFIG, ATTRID_HVAC_THERMOSTAT_UI_CONFIG_DISPLAY_MODE);
+      }
+        break;
+     case 7:
+       zclApp_LocalTime();
+        break;
 #ifdef LQI_REQ
-    case 6:
+    case 8:
         zclApp_RequestLqi();      
         break;
 #endif
@@ -674,6 +684,10 @@ static void zclApp_ReadSensors(void) {
     }
   }
   zclApp_StartReloadTimer();
+}
+
+static void zclApp_LocalTime(void) {
+  bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, GEN_TIME, ATTRID_TIME_LOCAL_TIME);
 }
 
 static void zclApp_bh1750StartLumosity(void) {
@@ -994,7 +1008,9 @@ void EpdtestRefresh(void)
   time_string[1] = time.hour % 10 + '0';
   time_string[3] = time.minutes / 10 % 10 + '0';
   time_string[4] = time.minutes % 10 + '0';
-  
+  // covert UTCTimeStruct date and month to display
+  time.day = time.day + 1;
+  time.month = time.month + 1;  
   char date_string[] = {'0', '0', '.', '0', '0', '.', '0', '0', '\0'};
   date_string[0] = time.day /10 % 10  + '0';
   date_string[1] = time.day % 10 + '0';
@@ -1166,8 +1182,8 @@ void zclApp_SetTimeDate(void){
    time.seconds = 00;
    time.minutes = (zclApp_DateCode[15]-48)*10 + (zclApp_DateCode[16]-48);
    time.hour = (zclApp_DateCode[12]-48)*10 + (zclApp_DateCode[13]-48);
-   time.day = (zclApp_DateCode[1]-48)*10 + (zclApp_DateCode[2]-48);
-   time.month = (zclApp_DateCode[4]-48)*10 + (zclApp_DateCode[5]-48);
+   time.day = (zclApp_DateCode[1]-48)*10 + (zclApp_DateCode[2]-48) - 1;
+   time.month = (zclApp_DateCode[4]-48)*10 + (zclApp_DateCode[5]-48) - 1;
    time.year = 2000+(zclApp_DateCode[9]-48)*10 + (zclApp_DateCode[10]-48);
   // Update OSAL time
   osal_setClock( osal_ConvertUTCSecs( &time ) );
