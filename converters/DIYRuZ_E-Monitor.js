@@ -40,7 +40,7 @@ const fz = {
         cluster: 'genTime',
         type: ['attributeReport', 'readResponse'],
         convert: (model, msg, publish, options, meta) => {
-          return {local_time: msg.data.time};
+          return {local_time: msg.data.localTime};
         },
     },
     invert_epd: {
@@ -350,6 +350,21 @@ const device = {
             maximumReportInterval: 3600,
             reportableChange: 0,
         }];
+        const timeBindPayload = [{
+            attribute: 'localTime',
+            minimumReportInterval: 0,
+            maximumReportInterval: 3600,
+            reportableChange: 0,
+        }];
+        const displayBindPayload = [{
+                attribute: {
+                    ID: 0xF004,
+                    type: 0x10,
+                },
+            minimumReportInterval: 0,
+            maximumReportInterval: 3600,
+            reportableChange: 0,
+        }];
         const msTemperatureBindPayload = [{
             attribute: 'measuredValue',
             minimumReportInterval: 0,
@@ -363,6 +378,8 @@ const device = {
             reportableChange: 0,
         }];
             await firstEndpoint.configureReporting('genPowerCfg', genPowerCfgPayload);
+            await firstEndpoint.configureReporting('genTime', timeBindPayload);
+            await firstEndpoint.configureReporting('hvacUserInterfaceCfg', displayBindPayload);
             await firstEndpoint.configureReporting('msTemperatureMeasurement', msTemperatureBindPayload);
             await firstEndpoint.configureReporting('msRelativeHumidity', msBindPayload);
             await firstEndpoint.configureReporting('msPressureMeasurement', msBindPayload);
