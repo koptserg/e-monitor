@@ -2192,6 +2192,12 @@
             <name>$PROJ_DIR$\..\Source\epd2in9v2.h</name>
         </file>
         <file>
+            <name>$PROJ_DIR$\..\Source\epd3in7.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Source\epd3in7.h</name>
+        </file>
+        <file>
             <name>$PROJ_DIR$\..\Source\epdpaint.c</name>
         </file>
         <file>
