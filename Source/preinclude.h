@@ -71,8 +71,9 @@
 
 //#define EPD2IN9
 //#define EPD2IN9V2
-#define EPD2IN13V2
+//#define EPD2IN13V2
 //#define EPD1IN54V2
+#define EPD3IN7
 
 //spi BME280, EPD
 #define HAL_LCD_MODE_PORT 0 

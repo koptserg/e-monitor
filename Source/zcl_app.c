@@ -53,6 +53,9 @@
 #ifdef EPD1IN54V2
 #include "epd1in54v2.h"
 #endif
+#ifdef EPD3IN7
+#include "epd3in7.h"
+#endif
 
 #define HAL_LCD_BUSY BNAME(HAL_LCD_BUSY_PORT, HAL_LCD_BUSY_PIN)
 
@@ -276,6 +279,7 @@ void zclApp_Init(byte task_id) {
     EpdSetFrameMemoryBase(IMAGE_DATA, zclApp_Config.HvacUiDisplayMode);
     EpdDisplayFrame();
     _delay_ms(2000);
+
     EpdClearFrameMemory(zclApp_color);
     EpdDisplayFrame();
     EpdClearFrameMemory(zclApp_color);
@@ -290,6 +294,7 @@ void zclApp_Init(byte task_id) {
 
     zclApp_SetTimeDate();  
     EpdRefresh();
+
   }
 }
 
@@ -895,7 +900,7 @@ void EpdtestRefresh(void)
     EpdSetFrameMemoryImageXY(IMAGE_OFFNETWORK, 106, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   }
 #endif
-#if defined(EPD2IN9) || defined(EPD2IN9V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
   if ( bdbAttributes.bdbNodeIsOnANetwork ){
     EpdSetFrameMemoryImageXY(IMAGE_ONNETWORK, 112, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   } else {
@@ -915,7 +920,7 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, lqi_string, &Font16, COLORED); 
-#if defined(EPD2IN9) || defined(EPD2IN9V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 110, 18, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
@@ -988,7 +993,7 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, nwk_string, &Font16, COLORED); 
-#if defined(EPD2IN9) || defined(EPD2IN9V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 110, 64, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
@@ -1024,7 +1029,7 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 4, time_string, &Font24, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 70, 10, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD1IN54V2)
@@ -1036,7 +1041,7 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 4, date_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 50, 8, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD1IN54V2)
@@ -1054,7 +1059,7 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, perc_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 17, 36, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
@@ -1071,7 +1076,7 @@ void EpdtestRefresh(void)
   } else {
     PaintDrawStringAt(0, 0, "Occupied  ", &Font16, COLORED);
   }
-#if defined(EPD2IN9) || defined(EPD2IN9V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 90, 148, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
@@ -1094,7 +1099,7 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, illum_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 65, 148, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
@@ -1116,7 +1121,7 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, temp_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 49, 148, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
@@ -1138,7 +1143,7 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, hum_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 33, 148, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
@@ -1161,7 +1166,7 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, pres_string, &Font16, COLORED); 
-#if defined(EPD2IN9) || defined(EPD2IN9V2)
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 17, 148, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
