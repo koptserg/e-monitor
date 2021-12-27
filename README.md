@@ -9,5 +9,5 @@
 2. Go to step 1 for FN device
 
 # Hardware
-![](/images/epd29.jpg)
+![](/images/epd3in7.jpg)
 ![](/images/epd3in7.jpg)
