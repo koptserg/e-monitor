@@ -10,3 +10,4 @@
 
 # Hardware
 ![](/images/epd29.jpg)
+![](/images/epd3in7.jpg)
