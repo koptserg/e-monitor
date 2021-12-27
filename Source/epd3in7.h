@@ -2,8 +2,8 @@
 #define EPD3IN7_H
 
 // Display resolution
-#define EPD_WIDTH       480
-#define EPD_HEIGHT      280
+#define EPD_WIDTH       280
+#define EPD_HEIGHT      480
 
 // EPD3IN7 commands
 

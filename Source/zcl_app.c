@@ -127,9 +127,10 @@ uint16 temp_HumiditySensor_MeasuredValue;
 bool EpdDetect = 1; 
 uint8 fullupdate_hour = 0;
 uint8 zclApp_color = 1;
+uint8 zclApp_EpdUpDown = 0x00; 
 
 #ifdef LQI_REQ
-uint8 zclApp_lqi = 0;
+uint8 zclApp_lqi = 255;
 uint8 zclApp_startIndex = 0;
 #endif
 afAddrType_t inderect_DstAddr = {.addrMode = (afAddrMode_t)AddrNotPresent, .endPoint = 0, .addr.shortAddr = 0};
@@ -252,9 +253,7 @@ void zclApp_Init(byte task_id) {
 #ifdef LQI_REQ
     // Register the callback Mgmt_Lqi_rsp
     ZDO_RegisterForZDOMsg(zclApp_TaskID, Mgmt_Lqi_rsp);
-#endif   
-    zclApp_StartReloadTimer();
-    osal_start_reload_timer(zclApp_TaskID, APP_REPORT_CLOCK_EVT, 60000);
+#endif
     
   // check epd
   EpdReset();
@@ -296,6 +295,8 @@ void zclApp_Init(byte task_id) {
     EpdRefresh();
 
   }
+    zclApp_StartReloadTimer();
+    osal_start_reload_timer(zclApp_TaskID, APP_REPORT_CLOCK_EVT, 60000);
 }
 
 #ifdef LQI_REQ
@@ -332,7 +333,7 @@ void zclApp_ProcessZDOMsgs(zdoIncomingMsg_t *InMsg){
         }
       } else {
         zclApp_startIndex = 0;
-        zclApp_lqi = 0;
+        zclApp_lqi = 255;
       }
       osal_mem_free(LqRsp);      
       
@@ -359,7 +360,7 @@ void zclApp_RequestLqi(void){
         startIndex = zclApp_startIndex;
         ZDP_MgmtLqiReq(&destAddr,startIndex, 0);
 //        ZDP_MgmtLqiReq(&destAddr,startIndex, AF_EN_SECURITY);
-        zclApp_lqi = 0;
+        zclApp_lqi = 255;
         LREP("REQ_sI=%d\r\n", zclApp_startIndex);
   }
 }
@@ -409,13 +410,9 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
             case ZDO_STATE_CHANGE: //devStates_t ZDApp.h             
                 zclApp_NwkState = (devStates_t)(MSGpkt->hdr.status);
                 LREP("NwkState=%d\r\n", zclApp_NwkState);
-//                if (zclApp_NwkState == DEV_NWK_SEC_REJOIN_CURR_CHANNEL) {
-//                  zclApp_startIndex = 0;
-//                  zclApp_lqi = 0;
-//                }
                 if (zclApp_NwkState == DEV_END_DEVICE) {
                   zclApp_startIndex = 0;
-                  zclApp_lqi = 0;
+                  zclApp_lqi = 255;
                   EpdRefresh();
                   IEN2 |= HAL_KEY_BIT4; // enable port1 int
                   P1DIR |=  BV(0); // P1_0 output
@@ -717,6 +714,11 @@ static void zclApp_bh1750ReadLumosity(void) {
       illum = (zclApp_bh1750IlluminanceSensor_MeasuredValue - temp_bh1750IlluminanceSensor_MeasuredValue);
     }
     if (illum > zclApp_Config.MsIlluminanceMinAbsoluteChange || report == 1){ // 10 lux
+      if (temp_bh1750IlluminanceSensor_MeasuredValue > zclApp_bh1750IlluminanceSensor_MeasuredValue){
+        zclApp_EpdUpDown &= ~BV(0); // down
+      } else {
+        zclApp_EpdUpDown |=  BV(0); // up
+      }
       temp_bh1750IlluminanceSensor_MeasuredValue = zclApp_bh1750IlluminanceSensor_MeasuredValue;
       bdb_RepChangedAttrValue(zclApp_FourthEP.EndPoint, ILLUMINANCE, ATTRID_MS_ILLUMINANCE_MEASURED_VALUE);
       EpdRefresh();
@@ -736,6 +738,11 @@ static void zclApp_ReadBME280Temperature(void) {
           temp = (zclApp_Temperature_Sensor_MeasuredValue - temp_Temperature_Sensor_MeasuredValue);
         }
         if (temp > zclApp_Config.MsTemperatureMinAbsoluteChange || report == 1){ //50 - 0.5 
+          if (temp_Temperature_Sensor_MeasuredValue > zclApp_Temperature_Sensor_MeasuredValue){
+            zclApp_EpdUpDown &= ~BV(1); // down
+          } else {
+            zclApp_EpdUpDown |=  BV(1); // up
+          }
           temp_Temperature_Sensor_MeasuredValue = zclApp_Temperature_Sensor_MeasuredValue;
           bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, TEMP, ATTRID_MS_TEMPERATURE_MEASURED_VALUE);
           EpdRefresh();
@@ -756,6 +763,11 @@ static void zclApp_ReadBME280Pressure(void) {
           press = (zclApp_PressureSensor_MeasuredValue - temp_PressureSensor_MeasuredValue);
         }
         if (press > zclApp_Config.MsPressureMinAbsoluteChange || report == 1){ //1gPa
+          if (temp_PressureSensor_MeasuredValue > zclApp_PressureSensor_MeasuredValue){
+            zclApp_EpdUpDown &= ~BV(3); // down
+          } else {
+            zclApp_EpdUpDown |=  BV(3); // up
+          }
           temp_PressureSensor_MeasuredValue = zclApp_PressureSensor_MeasuredValue;
           temp_PressureSensor_ScaledValue = zclApp_PressureSensor_ScaledValue;
           bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, PRESSURE, ATTRID_MS_PRESSURE_MEASUREMENT_MEASURED_VALUE);
@@ -775,13 +787,18 @@ static void zclApp_ReadBME280Humidity(void) {
           humid = (zclApp_HumiditySensor_MeasuredValue - temp_HumiditySensor_MeasuredValue);
         }
         if (humid > zclApp_Config.MsHumidityMinAbsoluteChange || report == 1){ //10%
+          if (temp_HumiditySensor_MeasuredValue > zclApp_HumiditySensor_MeasuredValue){
+            zclApp_EpdUpDown &= ~BV(2); // down
+          } else {
+            zclApp_EpdUpDown |=  BV(2); // up
+          }
           temp_HumiditySensor_MeasuredValue = zclApp_HumiditySensor_MeasuredValue;
           bdb_RepChangedAttrValue(zclApp_FirstEP.EndPoint, HUMIDITY, ATTRID_MS_RELATIVE_HUMIDITY_MEASURED_VALUE);
           EpdRefresh();
         }
 }
 
-static void zclApp_Report(void) { osal_start_reload_timer(zclApp_TaskID, APP_READ_SENSORS_EVT, 200); }
+static void zclApp_Report(void) { osal_start_reload_timer(zclApp_TaskID, APP_READ_SENSORS_EVT, 100); }
 
 static void zclApp_BasicResetCB(void) {
     LREPMaster("BasicResetCB\r\n");
@@ -826,16 +843,25 @@ static void zclApp_StopReloadTimer(void) {
 }
 
 static void zclApp_StartReloadTimer(void) {
+  if (zclApp_Config.CfgBatteryPeriod != 0) {
     osal_start_reload_timer(zclApp_TaskID, APP_REPORT_BATTERY_EVT, (uint32)zclApp_Config.CfgBatteryPeriod * 60000);
-    
-    if (bmeDetect == 1){
+  }  
+  if (bmeDetect == 1){
+    if (zclApp_Config.MsTemperaturePeriod != 0) {
       osal_start_reload_timer(zclApp_TaskID, APP_REPORT_TEMPERATURE_EVT, (uint32)zclApp_Config.MsTemperaturePeriod * 1000);
+    }
+    if (zclApp_Config.MsPressurePeriod != 0) {
       osal_start_reload_timer(zclApp_TaskID, APP_REPORT_PRESSURE_EVT, (uint32)zclApp_Config.MsPressurePeriod * 1000);
+    }
+    if (zclApp_Config.MsHumidityPeriod != 0) {
       osal_start_reload_timer(zclApp_TaskID, APP_REPORT_HUMIDITY_EVT, (uint32)zclApp_Config.MsHumidityPeriod * 1000);
     }
-    if (bh1750Detect == 1){
+  }
+  if (bh1750Detect == 1){
+    if (zclApp_Config.MsIlluminancePeriod != 0) {
       osal_start_reload_timer(zclApp_TaskID, APP_REPORT_ILLUMINANCE_EVT, (uint32)zclApp_Config.MsIlluminancePeriod * 1000);
-    } 
+    }
+  } 
 }
 
 static void zclApp_RestoreAttributesFromNV(void) {
@@ -900,12 +926,33 @@ void EpdtestRefresh(void)
     EpdSetFrameMemoryImageXY(IMAGE_OFFNETWORK, 106, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   }
 #endif
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
   if ( bdbAttributes.bdbNodeIsOnANetwork ){
     EpdSetFrameMemoryImageXY(IMAGE_ONNETWORK, 112, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   } else {
     EpdSetFrameMemoryImageXY(IMAGE_OFFNETWORK, 112, 0, 16, 16, zclApp_Config.HvacUiDisplayMode);
   }
+#endif
+#if defined(EPD3IN7)
+  if ( bdbAttributes.bdbNodeIsOnANetwork ){
+    EpdSetFrameMemoryImageXY(IMAGE_ONNETWORK, 264, 1, 16, 16, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_OFFNETWORK, 264, 1, 16, 16, zclApp_Config.HvacUiDisplayMode);
+  }
+  PaintSetWidth(8);
+  PaintSetHeight(480);
+  PaintSetRotate(ROTATE_90); 
+  PaintClear(UNCOLORED);
+//  PaintDrawRectangle(0, 4, 480, 4, COLORED);
+  PaintDrawHorizontalLine(0, 4, 480, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 248, 0, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 4, 0, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(240);
+  PaintSetHeight(8);
+  PaintSetRotate(ROTATE_90); 
+  PaintClear(UNCOLORED);  
+  PaintDrawVerticalLine(0, 0, 240, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 8, 216, PaintGetWidth(), PaintGetHeight());
 #endif
 
 #ifdef LQI_REQ  
@@ -920,8 +967,26 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, lqi_string, &Font16, COLORED); 
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 110, 18, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD3IN7)
+  if (zclApp_lqi != 255) {
+    EpdSetFrameMemoryXY(PaintGetImage(), 256, 64, PaintGetWidth(), PaintGetHeight());
+    if(zclApp_lqi > 40){
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_100, 256, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi <= 40 && zclApp_lqi > 30) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_80, 256, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi <= 30 && zclApp_lqi > 20) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_60, 256, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi <= 20 && zclApp_lqi > 10) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_40, 256, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi <= 10 && zclApp_lqi > 0) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_20, 256, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi == 0) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_0, 256, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    }
+  }
 #endif
 #if defined(EPD2IN13V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 106, 18, PaintGetWidth(), PaintGetHeight()); 
@@ -966,25 +1031,7 @@ void EpdtestRefresh(void)
   if ((_NIB.nwkCoordAddress %16) > 9){
     nwk_string[12] = nwk_string[12]+7;
   }
-/* 
-  // nwkPanId 
-  nwk_string[9] = _NIB.nwkPanId / 4096 %16 + '0';
-  if ((_NIB.nwkPanId/4096 %16) > 9){
-    nwk_string[9] = nwk_string[9]+7;
-  }
-  nwk_string[10] = _NIB.nwkPanId / 256 %16 + '0';
-  if ((_NIB.nwkPanId/256 %16) > 9){
-    nwk_string[10] = nwk_string[10]+7;
-  }
-  nwk_string[11] = _NIB.nwkPanId / 16 %16 + '0';
-  if ((_NIB.nwkPanId/16 %16) > 9){
-    nwk_string[11] = nwk_string[11]+7;
-  }
-  nwk_string[12] = _NIB.nwkPanId %16 + '0';
-  if ((_NIB.nwkPanId %16) > 9){
-    nwk_string[12] = nwk_string[12]+7;
-  }
-*/  
+  
   nwk_string[14] = _NIB.nwkLogicalChannel / 10 %10 + '0';
   nwk_string[15] = _NIB.nwkLogicalChannel %10 + '0';
   
@@ -993,8 +1040,11 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, nwk_string, &Font16, COLORED); 
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 110, 64, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD3IN7)
+  EpdSetFrameMemoryXY(PaintGetImage(), 256, 216, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD2IN13V2)
   EpdSetFrameMemoryXY(PaintGetImage(), 106, 64, PaintGetWidth(), PaintGetHeight()); 
@@ -1008,11 +1058,21 @@ void EpdtestRefresh(void)
   osalTimeUpdate();
   UTCTimeStruct time;
   osal_ConvertUTCTime(&time, osal_getClock());
+/*
   char time_string[] = {'0', '0', ':', '0', '0', '\0'};
   time_string[0] = time.hour / 10 % 10 + '0';
   time_string[1] = time.hour % 10 + '0';
   time_string[3] = time.minutes / 10 % 10 + '0';
   time_string[4] = time.minutes % 10 + '0';
+*/
+  char time_string[] = {'0', '0', ':', '\0'};
+  time_string[0] = time.hour / 10 % 10 + '0';
+  time_string[1] = time.hour % 10 + '0';
+  
+  char time_string_1[] = {'0', '0', '\0'};
+  time_string_1[0] = time.minutes / 10 % 10 + '0';
+  time_string_1[1] = time.minutes % 10 + '0';
+  
   // covert UTCTimeStruct date and month to display
   time.day = time.day + 1;
   time.month = time.month + 1;  
@@ -1024,46 +1084,125 @@ void EpdtestRefresh(void)
   date_string[6] = time.year / 10 % 10 + '0';
   date_string[7] = time.year % 10 + '0';
 
-  PaintSetWidth(24);
-  PaintSetHeight(85);
+  uint8 day_week = (uint8)floor((float)(zclApp_GenTime_TimeUTC/86400)) % 7;
+
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+  PaintSetWidth(48);
+  PaintSetHeight(72);
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
-  PaintDrawStringAt(0, 4, time_string, &Font24, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2) || defined(EPD3IN7)
-  EpdSetFrameMemoryXY(PaintGetImage(), 70, 10, PaintGetWidth(), PaintGetHeight());
+  PaintDrawStringAt(0, 4, time_string, &Font48, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 56, 10, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(48);
+  PaintSetHeight(48);
+  PaintSetRotate(ROTATE_90);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 4, time_string_1, &Font48, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 56, 82, PaintGetWidth(), PaintGetHeight());
+#endif
+#if defined(EPD3IN7)
+  PaintSetWidth(48);
+  PaintSetHeight(72);
+  PaintSetRotate(ROTATE_90);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 4, time_string, &Font48, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 80, 40, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(48);
+  PaintSetHeight(48);
+  PaintSetRotate(ROTATE_90);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 4, time_string_1, &Font48, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 80, 112, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 154, 70, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(48);
+  PaintSetHeight(72);
+  PaintSetRotate(ROTATE_90);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 4, time_string, &Font48, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 130, 46, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(48);
+  PaintSetHeight(48);
+  PaintSetRotate(ROTATE_90);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 4, time_string_1, &Font48, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 130, 118, PaintGetWidth(), PaintGetHeight());
 #endif
   
   PaintSetWidth(16);
-  PaintSetHeight(90);
+  PaintSetHeight(136);
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 4, date_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2) || defined(EPD3IN7)
-  EpdSetFrameMemoryXY(PaintGetImage(), 50, 8, PaintGetWidth(), PaintGetHeight());
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 40, 24, PaintGetWidth(), PaintGetHeight());
+#endif
+#if defined(EPD3IN7)
+  EpdSetFrameMemoryXY(PaintGetImage(), 64, 57, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 138, 68, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 114, 60, PaintGetWidth(), PaintGetHeight());
 #endif
   
+  PaintSetWidth(16);
+  PaintSetHeight(136);
+  PaintSetRotate(ROTATE_90);
+  PaintClear(UNCOLORED);
+  if (day_week == 0) {
+    PaintDrawStringAt(0, 0, "Thursday", &Font16, COLORED);
+  } else if (day_week == 1) {
+    PaintDrawStringAt(0, 0, " Friday ", &Font16, COLORED);
+  } else if (day_week == 2) {
+    PaintDrawStringAt(0, 0, "Saturday", &Font16, COLORED);
+  } else if (day_week == 3) {
+    PaintDrawStringAt(0, 0, " Sunday", &Font16, COLORED);
+  } else if (day_week == 4) {
+    PaintDrawStringAt(0, 0, " Monday", &Font16, COLORED);
+  } else if (day_week == 5) {
+    PaintDrawStringAt(0, 0, "Tuesday", &Font16, COLORED);
+  } else if (day_week == 6) {
+    PaintDrawStringAt(0, 0, "Wednesday", &Font16, COLORED);
+  }
+#if defined(EPD3IN7)
+  EpdSetFrameMemoryXY(PaintGetImage(), 48, 57, PaintGetWidth(), PaintGetHeight());
+#endif 
+  
   //percentage
-  char perc_string[] = {'0', '0', '0', '%', '\0'};
-  perc_string[0] = zclBattery_PercentageRemainig/2 / 100 % 10 + '0';
-  perc_string[1] = zclBattery_PercentageRemainig/2 / 10 % 10 + '0';
-  perc_string[2] = zclBattery_PercentageRemainig/2 % 10 + '0';
+  char perc_string[] = {' ', ' ', ' ', ' ', '\0'};
+  if (zclBattery_PercentageRemainig != 0xFF) {
+//    char perc_string[] = {'0', '0', '0', '%', '\0'};
+    perc_string[0] = zclBattery_PercentageRemainig/2 / 100 % 10 + '0';
+    perc_string[1] = zclBattery_PercentageRemainig/2 / 10 % 10 + '0';
+    perc_string[2] = zclBattery_PercentageRemainig/2 % 10 + '0';
+    perc_string[3] = '%';
+  }
   
   PaintSetWidth(16);
   PaintSetHeight(48);
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, perc_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2) || defined(EPD3IN7)
-  EpdSetFrameMemoryXY(PaintGetImage(), 17, 36, PaintGetWidth(), PaintGetHeight()); 
+#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD2IN13V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 16, 52, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD3IN7)
+  EpdSetFrameMemoryXY(PaintGetImage(), 256, 144, PaintGetWidth(), PaintGetHeight());
+  if (zclBattery_PercentageRemainig != 0xFF) {   
+    if(zclBattery_PercentageRemainig/2 > 75){
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_100, 256, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclBattery_PercentageRemainig/2 <= 75 && zclBattery_PercentageRemainig/2 > 50) {
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_75, 256, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclBattery_PercentageRemainig/2 <= 50 && zclBattery_PercentageRemainig/2 > 25) {
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_50, 256, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclBattery_PercentageRemainig/2 <= 25 && zclBattery_PercentageRemainig/2 > 6) {
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_25, 256, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclBattery_PercentageRemainig/2 <= 6 && zclBattery_PercentageRemainig/2 > 0) {
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_0, 256, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    }
+  }
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 112, 96, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 88, 88, PaintGetWidth(), PaintGetHeight());
 #endif
   
   // Occupancy
@@ -1074,16 +1213,24 @@ void EpdtestRefresh(void)
   if (zclApp_Occupied == 0) {
     PaintDrawStringAt(0, 0, "UnOccupied", &Font16, COLORED);
   } else {
-    PaintDrawStringAt(0, 0, "Occupied  ", &Font16, COLORED);
+    PaintDrawStringAt(0, 0, " Occupied ", &Font16, COLORED);
   }
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
-  EpdSetFrameMemoryXY(PaintGetImage(), 90, 148, PaintGetWidth(), PaintGetHeight()); 
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 88, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD3IN7)
+  EpdSetFrameMemoryXY(PaintGetImage(), 128, 46, PaintGetWidth(), PaintGetHeight()); 
+  if (zclApp_Occupied == 0) {
+    EpdSetFrameMemoryImageXY(IMAGE_MOTION_NOT, 144, 74, 64, 64, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_MOTION,     144, 74, 64, 64, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
 #if defined(EPD2IN13V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 90, 118, PaintGetWidth(), PaintGetHeight()); 
+  EpdSetFrameMemoryXY(PaintGetImage(), 90, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 90, 60, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 74, 52, PaintGetWidth(), PaintGetHeight());
 #endif
   
   //Illuminance
@@ -1099,14 +1246,41 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, illum_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
-  EpdSetFrameMemoryXY(PaintGetImage(), 65, 148, PaintGetWidth(), PaintGetHeight()); 
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 64, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD3IN7)
+
+  PaintSetWidth(32);
+  PaintSetHeight(80);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, illum_string, &Font32, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 200, 300, PaintGetWidth(), PaintGetHeight());
+
+  PaintSetWidth(16);
+  PaintSetHeight(33);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "Lux", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 200, 388, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(16);
+  PaintSetHeight(121);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "Illuminance", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 184, 300, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryImageXY(IMAGE_ILLUMINANCE, 184, 240, 48, 48, zclApp_Config.HvacUiDisplayMode);
+  if (zclApp_EpdUpDown & 0x01){
+    EpdSetFrameMemoryImageXY(IMAGE_UP, 216, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 184, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_DOWN, 184, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 216, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
 #if defined(EPD2IN13V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 65, 118, PaintGetWidth(), PaintGetHeight()); 
+  EpdSetFrameMemoryXY(PaintGetImage(), 65, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 65, 60, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 49, 52, PaintGetWidth(), PaintGetHeight());
 #endif
   
   //temperature
@@ -1121,14 +1295,41 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, temp_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
-  EpdSetFrameMemoryXY(PaintGetImage(), 49, 148, PaintGetWidth(), PaintGetHeight()); 
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 48, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD3IN7)
+
+  PaintSetWidth(32);
+  PaintSetHeight(80);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, temp_string, &Font32, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 144, 300, PaintGetWidth(), PaintGetHeight());
+
+  PaintSetWidth(16);
+  PaintSetHeight(33);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "^C", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 144, 388, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(16);
+  PaintSetHeight(121);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "Temperature", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 128, 300, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryImageXY(IMAGE_TEMPERATURE, 128, 240, 48, 48, zclApp_Config.HvacUiDisplayMode);
+  if (zclApp_EpdUpDown & 0x02){
+    EpdSetFrameMemoryImageXY(IMAGE_UP, 160, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 128, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_DOWN, 128, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 160, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
 #if defined(EPD2IN13V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 49, 118, PaintGetWidth(), PaintGetHeight()); 
+  EpdSetFrameMemoryXY(PaintGetImage(), 49, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 49, 60, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 33, 52, PaintGetWidth(), PaintGetHeight());
 #endif
   
   //humidity
@@ -1143,14 +1344,41 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, hum_string, &Font16, COLORED);
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
-  EpdSetFrameMemoryXY(PaintGetImage(), 33, 148, PaintGetWidth(), PaintGetHeight()); 
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 32, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD3IN7)
+
+  PaintSetWidth(32);
+  PaintSetHeight(80);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, hum_string, &Font32, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 88, 300, PaintGetWidth(), PaintGetHeight());
+
+  PaintSetWidth(16);
+  PaintSetHeight(33);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "%Ha", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 88, 388, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(16);
+  PaintSetHeight(121);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "Humidity", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 72, 300, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryImageXY(IMAGE_HUMIDITY, 72, 240, 48, 48, zclApp_Config.HvacUiDisplayMode);
+  if (zclApp_EpdUpDown & 0x04){
+    EpdSetFrameMemoryImageXY(IMAGE_UP, 104, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 72, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_DOWN, 72, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 104, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
 #if defined(EPD2IN13V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 33, 118, PaintGetWidth(), PaintGetHeight()); 
+  EpdSetFrameMemoryXY(PaintGetImage(), 33, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 33, 60, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 17, 52, PaintGetWidth(), PaintGetHeight());
 #endif
   
   //pressure
@@ -1166,14 +1394,41 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 0, pres_string, &Font16, COLORED); 
-#if defined(EPD2IN9) || defined(EPD2IN9V2) || defined(EPD3IN7)
-  EpdSetFrameMemoryXY(PaintGetImage(), 17, 148, PaintGetWidth(), PaintGetHeight()); 
+#if defined(EPD2IN9) || defined(EPD2IN9V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 16, 148, PaintGetWidth(), PaintGetHeight()); 
+#endif
+#if defined(EPD3IN7)
+
+  PaintSetWidth(32);
+  PaintSetHeight(96);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, pres_string, &Font32, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 32, 300, PaintGetWidth(), PaintGetHeight());
+
+  PaintSetWidth(16);
+  PaintSetHeight(33);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "hPa", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 32, 404, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(16);
+  PaintSetHeight(121);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "Pressure", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 16, 300, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryImageXY(IMAGE_PRESSURE, 16, 240, 48, 48, zclApp_Config.HvacUiDisplayMode);
+  if (zclApp_EpdUpDown & 0x08){
+    EpdSetFrameMemoryImageXY(IMAGE_UP, 48, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 16, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_DOWN, 16, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 48, 284, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
 #if defined(EPD2IN13V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 17, 118, PaintGetWidth(), PaintGetHeight()); 
+  EpdSetFrameMemoryXY(PaintGetImage(), 17, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 17, 60, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 1, 52, PaintGetWidth(), PaintGetHeight());
 #endif
 
   EpdDisplayFramePartial();

@@ -33,9 +33,6 @@ void EpdInit(void) {
   EpdSendData(0xDF);
   EpdSendData(0x01);
   EpdSendData(0x00);
-//    EpdSendData((EPD_HEIGHT - 1) & 0xFF);
-//    EpdSendData(((EPD_HEIGHT - 1) >> 8) & 0xFF);
-//    EpdSendData(0x00);                     // GD = 0; SM = 0; TB = 0;
   
   EpdSendCommand(SOURCE_VOLTAGE_CONTROL); // set source voltage
   EpdSendData(0x41);
@@ -73,19 +70,7 @@ void EpdInit(void) {
   EpdSendData(0xff);
   EpdSendData(0xff); 
   
-//  EpdSetMemoryArea(0, 0, epd_width - 1, epd_height - 1);
-
-  EpdSendCommand(0x44); // setting X direction start/end position of RAM
-  EpdSendData(0x00);
-  EpdSendData(0x00);
-  EpdSendData(0x17);
-  EpdSendData(0x01);
-
-  EpdSendCommand(0x45); // setting Y direction start/end position of RAM
-  EpdSendData(0x00);
-  EpdSendData(0x00);
-  EpdSendData(0xDF);
-  EpdSendData(0x01);
+  EpdSetMemoryArea(0, 0, epd_width - 1, epd_height - 1);
 
   EpdSendCommand(DISPLAY_UPDATE_CONTROL_2);
   EpdSendData(0xCF);
@@ -120,7 +105,7 @@ void EpdSendData(unsigned char data) {
 }
 
 
-void WaitUntilIdle(void) {
+void WaitUntilIdle(void) {  
   uint8 error_time = 20; // over 2.5 sec return
      while(HAL_LCD_BUSY == 1) {      //LOW: idle, HIGH: busy
         DelayMs(100);
@@ -193,8 +178,8 @@ void EpdSetFrameMemoryImageXY(const unsigned char* image_buffer, int x, int y, i
         return;
     }
     /* x point must be the multiple of 8 or the last 3 bits will be ignored */
-    x &= 0xF8;
-    image_width &= 0xF8;
+    x &= 0xFFF8;
+    image_width &= 0xFFF8;
     if (x + image_width >= epd_width) {
         x_end = epd_width - 1;
     } else {
@@ -205,7 +190,7 @@ void EpdSetFrameMemoryImageXY(const unsigned char* image_buffer, int x, int y, i
     } else {
         y_end = y + image_height - 1;
     }
-/*   
+  
     EpdSetMemoryArea(x, y, x_end, y_end);
     EpdSetMemoryPointer(x, y);
     EpdSendCommand(WRITE_RAM);
@@ -221,22 +206,7 @@ void EpdSetFrameMemoryImageXY(const unsigned char* image_buffer, int x, int y, i
           }
           EpdSendData((uint8)( inv_image ));
         }
-    }
-*/
-    for (int j = 0; j < y_end - y + 1; j++) {
-        EpdSetMemoryPointer(x*8, j+y);
-        for (int i = 0; i < (x_end - x + 1) / 8; i++) {
-          EpdSendCommand(WRITE_RAM); // work invert
-          uint8 inv_image = image_buffer[i + j * (image_width / 8)];
-          if (invert){
-            inv_image ^= 0x00;  
-          } else {  
-            inv_image ^= 0xFF;
-          }
-//          EpdSendCommand(WRITE_RAM); //not work inwert
-          EpdSendData((uint8)( inv_image ));
-        }
-    }
+    }  
 }
 
 void EpdSetFrameMemoryXY(const unsigned char* image_buffer, int x, int y, int image_width, int image_height) {
@@ -252,8 +222,8 @@ void EpdSetFrameMemoryXY(const unsigned char* image_buffer, int x, int y, int im
         return;
     }
     /* x point must be the multiple of 8 or the last 3 bits will be ignored */
-    x &= 0xF8;
-    image_width &= 0xF8;
+    x &= 0xFFF8;
+    image_width &= 0xFFF8;
     if (x + image_width >= epd_width) {
         x_end = epd_width - 1;
     } else {
@@ -264,7 +234,7 @@ void EpdSetFrameMemoryXY(const unsigned char* image_buffer, int x, int y, int im
     } else {
         y_end = y + image_height - 1;
     }
-/*    
+    
     EpdSetMemoryArea(x, y, x_end, y_end);
     EpdSetMemoryPointer(x, y);
    
@@ -275,15 +245,6 @@ void EpdSetFrameMemoryXY(const unsigned char* image_buffer, int x, int y, int im
             EpdSendData(image_buffer[i + j * (image_width / 8)]);
         }
     }
-*/  
-    for (int j = 0; j < y_end - y + 1; j++) {
-        EpdSetMemoryPointer(x*8, j+y);
-        for (int i = 0; i < (x_end - x + 1) / 8; i++) {
-          EpdSendCommand(WRITE_RAM);
-            EpdSendData(image_buffer[i + j * (image_width / 8)]);
-        }
-    }
-
 }
 
 void EpdSetFrameMemory(const unsigned char* image_buffer) {
@@ -297,7 +258,7 @@ void EpdSetFrameMemory(const unsigned char* image_buffer) {
 }
 
 void EpdSetFrameMemoryBase(const unsigned char* image_buffer, uint8 invert) {
-//  EpdSetMemoryArea(0, 0, epd_width - 1, epd_height - 1);
+  EpdSetMemoryArea(0, 0, epd_width - 1, epd_height - 1);
   EpdSetMemoryPointer(0, 0);
   
   EpdSendCommand(WRITE_RAM);
@@ -315,15 +276,8 @@ void EpdSetFrameMemoryBase(const unsigned char* image_buffer, uint8 invert) {
 
 
 void EpdClearFrameMemory(unsigned char color) {
-//    EpdSetMemoryArea(0, 0, epd_width - 1, epd_height - 1);
+    EpdSetMemoryArea(0, 0, epd_width - 1, epd_height - 1);
     EpdSetMemoryPointer(0, 0);  
-    
-  EpdSendCommand(0x4E);
-  EpdSendData(0x00);
-  EpdSendData(0x00);
-  EpdSendCommand(0x4F);
-  EpdSendData(0x00);
-  EpdSendData(0x00);
     
     EpdSendCommand(WRITE_RAM);
     /* send the color data */
@@ -334,9 +288,11 @@ void EpdClearFrameMemory(unsigned char color) {
 
 void EpdSetMemoryArea(int x_start, int y_start, int x_end, int y_end) {
     EpdSendCommand(SET_RAM_X_ADDRESS_START_END_POSITION);
-    /* x point must be the multiple of 8 or the last 3 bits will be ignored */
-    EpdSendData((x_start >> 3) & 0xFF);
-    EpdSendData((x_end >> 3) & 0xFF);
+    // x point must be the multiple of 8 or the last 3 bits will be ignored
+    EpdSendData((x_start) & 0xFF);
+    EpdSendData((x_start >> 8) & 0xFF);
+    EpdSendData((x_end) & 0xFF);
+    EpdSendData((x_end >> 8) & 0xFF);
     EpdSendCommand(SET_RAM_Y_ADDRESS_START_END_POSITION);
     EpdSendData(y_start & 0xFF);
     EpdSendData((y_start >> 8) & 0xFF);
@@ -348,7 +304,8 @@ void EpdSetMemoryArea(int x_start, int y_start, int x_end, int y_end) {
 void EpdSetMemoryPointer(int x, int y) {
     EpdSendCommand(SET_RAM_X_ADDRESS_COUNTER);
     /* x point must be the multiple of 8 or the last 3 bits will be ignored */
-    EpdSendData((x >> 3) & 0xFF);
+    EpdSendData((x) & 0xFF);
+    EpdSendData((x >> 8) & 0xFF);
     EpdSendCommand(SET_RAM_Y_ADDRESS_COUNTER);
     EpdSendData(y & 0xFF);
     EpdSendData((y >> 8) & 0xFF);
@@ -371,11 +328,13 @@ void EpdDisplayFrame(void) {
 }
 
 void EpdSleep(void) {
-//    EpdSendCommand(0X50);
-//    EpdSendData(0xf7);
-//    EpdSendCommand(0X02);   //power off
-//    EpdSendCommand(0X07);   //deep sleep
-//    EpdSendData(0xA5);
+/*
+    EpdSendCommand(0X50);
+    EpdSendData(0xf7);
+    EpdSendCommand(0X02);   //power off
+    EpdSendCommand(0X07);   //deep sleep
+    EpdSendData(0xA5);
+*/
     EpdSendCommand(DEEP_SLEEP_MODE);
     EpdSendData(0x01);
 }
