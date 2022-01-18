@@ -57,8 +57,8 @@ uint8 zclApp_Occupied = 0;
 /* Set default to Not be occupied */ 
 //uint8 zclApp_OccType = MS_OCCUPANCY_SENSOR_TYPE_PIR;
 
-#define DEFAULT_PirOccupiedToUnoccupiedDelay 20
-#define DEFAULT_PirUnoccupiedToOccupiedDelay 20
+#define DEFAULT_PirOccupiedToUnoccupiedDelay 60
+#define DEFAULT_PirUnoccupiedToOccupiedDelay 60
 #define DEFAULT_MsIlluminanceLevelSensingSensitivity 69
 #define DEFAULT_MsTemperatureMinAbsoluteChange 50 // 0.5
 #define DEFAULT_MsPressureMinAbsoluteChange 1

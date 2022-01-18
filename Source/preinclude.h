@@ -41,10 +41,10 @@
 #endif
 
 //one of this boards
-// #define HAL_BOARD_MOTION
+// #define HAL_BOARD_MONITOR
 // #define HAL_BOARD_CHDTECH_DEV
 
-#if !defined(HAL_BOARD_MOTION) && !defined(HAL_BOARD_CHDTECH_DEV)
+#if !defined(HAL_BOARD_MONITOR) && !defined(HAL_BOARD_CHDTECH_DEV)
 #error "Board type must be defined"
 #endif
 
@@ -53,7 +53,7 @@
 //#define LUMOISITY_PORT 0
 //#define LUMOISITY_PIN 7
 
-#if defined(HAL_BOARD_MOTION)
+#if defined(HAL_BOARD_MONITOR)
 #define POWER_SAVING
 //#define DO_DEBUG_UART
 
@@ -73,7 +73,7 @@
 //#define EPD2IN9V2
 //#define EPD2IN13V2
 //#define EPD1IN54V2
-#define EPD3IN7
+//#define EPD3IN7
 
 //spi BME280, EPD
 #define HAL_LCD_MODE_PORT 0 
@@ -129,7 +129,7 @@
 
 
 
-#if defined(HAL_BOARD_MOTION)
+#if defined(HAL_BOARD_MONITOR)
 #define FACTORY_RESET_BY_LONG_PRESS_PORT 0x04 //port2
 
 //#define HAL_KEY_P0_INPUT_PINS BV(0)

@@ -165,7 +165,7 @@ extern void MAC_RfFrontendSetup(void);
 
 /* ----------- LED's ---------- */
 
-#if defined(HAL_BOARD_MOTION)
+#if defined(HAL_BOARD_MONITOR)
   #define LED1_BV           BV(1)
   #define LED1_SBIT         P0_1
   #define LED1_DDR          P0DIR

@@ -222,7 +222,8 @@ void zclApp_Init(byte task_id) {
     
     HalI2CInit();
     bh1750Detect = bh1750_init(BH1750_mode);
-    zclApp_bh1750setMTreg();   
+    zclApp_bh1750setMTreg();  
+    
     // this is important to allow connects throught routers
     // to make this work, coordinator should be compiled with this flag #define TP2_LEGACY_ZC
     requestNewTrustCenterLinkKey = FALSE;
@@ -256,6 +257,7 @@ void zclApp_Init(byte task_id) {
 #endif
     
   // check epd
+
   EpdReset();
   uint8 error_time = 25; // over 2.5 sec return
   while(HAL_LCD_BUSY == 1) {      //LOW: idle, HIGH: busy
@@ -266,7 +268,8 @@ void zclApp_Init(byte task_id) {
       break;
     }
   }   
-  
+
+    
   if (EpdDetect == 1) { 
     if (zclApp_Config.HvacUiDisplayMode){
       zclApp_color = 0xFF;
@@ -452,7 +455,7 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
           zclApp_EpdUpdateClock();
           fullupdate_hour = 0;
         }
-        zclApp_LocalTime();
+        zclApp_LocalTime(); //report local time
         EpdRefresh();
 
         return (events ^ APP_REPORT_CLOCK_EVT);
@@ -992,7 +995,22 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 106, 18, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 182, 18, PaintGetWidth(), PaintGetHeight());
+    if (zclApp_lqi != 255) {
+    EpdSetFrameMemoryXY(PaintGetImage(), 184, 64, PaintGetWidth(), PaintGetHeight());
+    if(zclApp_lqi > 40){
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_100, 184, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi <= 40 && zclApp_lqi > 30) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_80, 184, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi <= 30 && zclApp_lqi > 20) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_60, 184, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi <= 20 && zclApp_lqi > 10) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_40, 184, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi <= 10 && zclApp_lqi > 0) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_20, 184, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclApp_lqi == 0) {
+      EpdSetFrameMemoryImageXY(IMAGE_LQI_0, 184, 34, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    }
+  }
 #endif
 #endif  //LQI_REQ
   
@@ -1050,7 +1068,12 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 106, 64, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 182, 56, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(170);
+  PaintSetHeight(16);
+  PaintSetRotate(ROTATE_0);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, nwk_string, &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 0, 0, PaintGetWidth(), PaintGetHeight());
 #endif
   
   // clock init Firmware build date 20/08/2021 13:47
@@ -1120,13 +1143,13 @@ void EpdtestRefresh(void)
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 4, time_string, &Font48, COLORED);
-  EpdSetFrameMemoryXY(PaintGetImage(), 130, 46, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 120, 82, PaintGetWidth(), PaintGetHeight());
   PaintSetWidth(48);
   PaintSetHeight(48);
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 4, time_string_1, &Font48, COLORED);
-  EpdSetFrameMemoryXY(PaintGetImage(), 130, 118, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 120, 150, PaintGetWidth(), PaintGetHeight());
 #endif
   
   PaintSetWidth(16);
@@ -1141,7 +1164,7 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 64, 57, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 114, 60, PaintGetWidth(), PaintGetHeight());
+  EpdSetFrameMemoryXY(PaintGetImage(), 168, 92, PaintGetWidth(), PaintGetHeight());
 #endif
   
   PaintSetWidth(16);
@@ -1166,6 +1189,9 @@ void EpdtestRefresh(void)
 #if defined(EPD3IN7)
   EpdSetFrameMemoryXY(PaintGetImage(), 48, 57, PaintGetWidth(), PaintGetHeight());
 #endif 
+#if defined(EPD1IN54V2)
+  EpdSetFrameMemoryXY(PaintGetImage(), 104, 92, PaintGetWidth(), PaintGetHeight());
+#endif
   
   //percentage
   char perc_string[] = {' ', ' ', ' ', ' ', '\0'};
@@ -1202,7 +1228,20 @@ void EpdtestRefresh(void)
   }
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 88, 88, PaintGetWidth(), PaintGetHeight());
+    EpdSetFrameMemoryXY(PaintGetImage(), 184, 144, PaintGetWidth(), PaintGetHeight());
+  if (zclBattery_PercentageRemainig != 0xFF) {   
+    if(zclBattery_PercentageRemainig/2 > 75){
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_100, 184, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclBattery_PercentageRemainig/2 <= 75 && zclBattery_PercentageRemainig/2 > 50) {
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_75, 184, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclBattery_PercentageRemainig/2 <= 50 && zclBattery_PercentageRemainig/2 > 25) {
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_50, 184, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclBattery_PercentageRemainig/2 <= 25 && zclBattery_PercentageRemainig/2 > 6) {
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_25, 184, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    } else if (zclBattery_PercentageRemainig/2 <= 6 && zclBattery_PercentageRemainig/2 > 0) {
+      EpdSetFrameMemoryImageXY(IMAGE_BATTERY_0, 184, 116, 16, 25, zclApp_Config.HvacUiDisplayMode);
+    }
+  }
 #endif
   
   // Occupancy
@@ -1230,7 +1269,12 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 90, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 74, 52, PaintGetWidth(), PaintGetHeight());
+//  EpdSetFrameMemoryXY(PaintGetImage(), 168, 52, PaintGetWidth(), PaintGetHeight());
+  if (zclApp_Occupied == 0) {
+    EpdSetFrameMemoryImageXY(IMAGE_MOTION_NOT, 104, 16, 64, 64, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_MOTION,     104, 16, 64, 64, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
   
   //Illuminance
@@ -1280,7 +1324,23 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 65, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 49, 52, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(32);
+  PaintSetHeight(80);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, illum_string, &Font32, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 64, 120, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(16);
+  PaintSetHeight(99);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "Lux", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 48, 120, PaintGetWidth(), PaintGetHeight());
+  if (zclApp_EpdUpDown & 0x01){
+    EpdSetFrameMemoryImageXY(IMAGE_UP, 80, 108, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 64, 108, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_DOWN, 64, 108, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 80, 108, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
   
   //temperature
@@ -1329,7 +1389,23 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 49, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 33, 52, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(32);
+  PaintSetHeight(80);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, temp_string, &Font32, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 64, 28, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(16);
+  PaintSetHeight(80);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "^C", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 48, 28, PaintGetWidth(), PaintGetHeight());
+  if (zclApp_EpdUpDown & 0x02){
+    EpdSetFrameMemoryImageXY(IMAGE_UP, 80, 16, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 64, 16, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_DOWN, 64, 16, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 80, 16, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
   
   //humidity
@@ -1378,7 +1454,23 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 33, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 17, 52, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(32);
+  PaintSetHeight(80);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, hum_string, &Font32, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 16, 28, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(16);
+  PaintSetHeight(80);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "%Ha", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 1, 28, PaintGetWidth(), PaintGetHeight());
+  if (zclApp_EpdUpDown & 0x04){
+    EpdSetFrameMemoryImageXY(IMAGE_UP, 32, 16, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 16, 16, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_DOWN, 16, 16, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 32, 16, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
   
   //pressure
@@ -1428,7 +1520,23 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 17, 136, PaintGetWidth(), PaintGetHeight()); 
 #endif
 #if defined(EPD1IN54V2)
-  EpdSetFrameMemoryXY(PaintGetImage(), 1, 52, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(32);
+  PaintSetHeight(64);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, pres_string, &Font32, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 16, 120, PaintGetWidth(), PaintGetHeight());
+  PaintSetWidth(16);
+  PaintSetHeight(99);
+  PaintClear(UNCOLORED);
+  PaintDrawStringAt(0, 0, "hPa", &Font16, COLORED);
+  EpdSetFrameMemoryXY(PaintGetImage(), 1, 120, PaintGetWidth(), PaintGetHeight());
+  if (zclApp_EpdUpDown & 0x08){
+    EpdSetFrameMemoryImageXY(IMAGE_UP, 32, 108, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 16, 108, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  } else {
+    EpdSetFrameMemoryImageXY(IMAGE_DOWN, 16, 108, 16, 12, zclApp_Config.HvacUiDisplayMode);
+    EpdSetFrameMemoryImageXY(IMAGE_CLEAR, 32, 108, 16, 12, zclApp_Config.HvacUiDisplayMode);
+  }
 #endif
 
   EpdDisplayFramePartial();

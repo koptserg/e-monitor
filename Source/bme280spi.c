@@ -230,8 +230,8 @@ bool BME280Init(void) {
   if (chip != 0x60) {
     LREPMaster("NOT BME280\r\n");
     /* Initialize GPIO */
-    bme_ConfigIOInput();
-    bme_ConfigGP();
+//    bme_ConfigIOInput();
+//    bme_ConfigGP();
     return 0;
   }
   
