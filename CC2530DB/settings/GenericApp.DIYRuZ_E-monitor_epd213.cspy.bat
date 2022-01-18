@@ -25,7 +25,7 @@ if not "%~1" == "" goto debugFile
 
 @echo on 
 
-"C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.1\common\bin\cspybat" -f "C:\Texas Instruments\Z-Stack 3.0.2\Projects\zstack\HomeAutomation\e-monitor\CC2530DB\settings\GenericApp.CHDTECH_DEV.general.xcl" --backend -f "C:\Texas Instruments\Z-Stack 3.0.2\Projects\zstack\HomeAutomation\e-monitor\CC2530DB\settings\GenericApp.CHDTECH_DEV.driver.xcl" 
+"C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.1\common\bin\cspybat" -f "C:\Texas Instruments\Z-Stack 3.0.2\Projects\zstack\HomeAutomation\e-monitor\CC2530DB\settings\GenericApp.DIYRuZ_E-monitor_epd213.general.xcl" --backend -f "C:\Texas Instruments\Z-Stack 3.0.2\Projects\zstack\HomeAutomation\e-monitor\CC2530DB\settings\GenericApp.DIYRuZ_E-monitor_epd213.driver.xcl" 
 
 @echo off 
 goto end 
@@ -34,7 +34,7 @@ goto end
 
 @echo on 
 
-"C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.1\common\bin\cspybat" -f "C:\Texas Instruments\Z-Stack 3.0.2\Projects\zstack\HomeAutomation\e-monitor\CC2530DB\settings\GenericApp.CHDTECH_DEV.general.xcl" "--debug_file=%~1" --backend -f "C:\Texas Instruments\Z-Stack 3.0.2\Projects\zstack\HomeAutomation\e-monitor\CC2530DB\settings\GenericApp.CHDTECH_DEV.driver.xcl" 
+"C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.1\common\bin\cspybat" -f "C:\Texas Instruments\Z-Stack 3.0.2\Projects\zstack\HomeAutomation\e-monitor\CC2530DB\settings\GenericApp.DIYRuZ_E-monitor_epd213.general.xcl" "--debug_file=%~1" --backend -f "C:\Texas Instruments\Z-Stack 3.0.2\Projects\zstack\HomeAutomation\e-monitor\CC2530DB\settings\GenericApp.DIYRuZ_E-monitor_epd213.driver.xcl" 
 
 @echo off 
 :end
