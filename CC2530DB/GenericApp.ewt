@@ -2210,6 +2210,12 @@
             <name>$PROJ_DIR$\..\Source\font24.c</name>
         </file>
         <file>
+            <name>$PROJ_DIR$\..\Source\font32.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Source\font48.c</name>
+        </file>
+        <file>
             <name>$PROJ_DIR$\..\Source\font8.c</name>
         </file>
         <file>
