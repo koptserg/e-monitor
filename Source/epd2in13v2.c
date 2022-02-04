@@ -247,9 +247,8 @@ void EpdSetFrameMemoryImageXY(const unsigned char* image_buffer, int x, int y, i
             inv_image ^= 0xFF;
           }
           EpdSendData((uint8)( inv_image ));
-//            EpdSendData(image_buffer[i + j * (image_width / 8)]);
         }
-    }
+    }    
 }
 
 void EpdSetFrameMemoryXY(const unsigned char* image_buffer, int x, int y, int image_width, int image_height) { 

@@ -19,6 +19,9 @@ extern const unsigned char IMAGE_BATTERY_0[];
 extern const unsigned char IMAGE_DOWN[];
 extern const unsigned char IMAGE_UP[];
 extern const unsigned char IMAGE_CLEAR[];
+extern const unsigned char IMAGE_RIGHT[];
+extern const unsigned char IMAGE_LEFT[];
+extern const unsigned char IMAGE_CLEAR16[];
 
 extern const unsigned char IMAGE_LQI_100[];
 extern const unsigned char IMAGE_LQI_80[];

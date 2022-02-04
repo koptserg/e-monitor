@@ -83,11 +83,11 @@ void EpdSendData(unsigned char data) {
 
 
 void WaitUntilIdle(void) {
-  uint8 error_time = 20; // over 2.5 sec return
+  uint8 error_time = 25; // over 2.5 sec return
      while(HAL_LCD_BUSY == 1) {      //LOW: idle, HIGH: busy
         DelayMs(100);
         error_time = error_time - 1;
-        if (error_time == 0){    
+        if (error_time == 0){
           EpdReset();
           return;
         }

@@ -25,6 +25,7 @@ extern    void PaintSetHeight(int height);
 extern    void PaintSetRotate(int rotate);
 extern    void PaintSetInvert(int invert);
 
+extern    void PaintDrawImage(const unsigned char* imgData, int x, int y, int Width, int Height, int colored);
 extern    unsigned char* PaintGetImage(void);
 extern    void PaintDrawAbsolutePixel(int x, int y, int colored);
 extern    void PaintDrawPixel(int x, int y, int colored);

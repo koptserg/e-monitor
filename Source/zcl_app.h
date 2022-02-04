@@ -145,7 +145,8 @@ typedef struct
     uint16 MsHumidityPeriod;
     uint16 MsIlluminancePeriod;
     uint16 CfgBatteryPeriod;
-    bool HvacUiDisplayMode;
+//    bool HvacUiDisplayMode;
+    uint8 HvacUiDisplayMode;
 }  application_config_t;
 
 extern application_config_t zclApp_Config;

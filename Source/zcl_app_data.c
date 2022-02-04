@@ -69,7 +69,7 @@ uint8 zclApp_Occupied = 0;
 #define DEFAULT_MsHumidityPeriod 10
 #define DEFAULT_MsIlluminancePeriod 10
 #define DEFAULT_CfgBatteryPeriod 30 // min
-#define DEFAULT_HvacUiDisplayMode 1 // 0 - invert, 1 - not invert
+#define DEFAULT_HvacUiDisplayMode 3 // 0 - invert, 1 - not invert
 application_config_t zclApp_Config = {.PirOccupiedToUnoccupiedDelay = DEFAULT_PirOccupiedToUnoccupiedDelay,
                                       .PirUnoccupiedToOccupiedDelay = DEFAULT_PirUnoccupiedToOccupiedDelay,
                                       .MsIlluminanceLevelSensingSensitivity = DEFAULT_MsIlluminanceLevelSensingSensitivity,
@@ -119,7 +119,8 @@ CONST zclAttrRec_t zclApp_AttrsFirstEP[] = {
     {GEN_TIME, {ATTRID_TIME_TIME, ZCL_UTC, RRW, (void *)&zclApp_GenTime_TimeUTC}},
     {GEN_TIME, {ATTRID_TIME_LOCAL_TIME, ZCL_UINT32, RRW, (void *)&zclApp_GenTime_TimeUTC}},
     
-    {HVAC_UI_CONFIG, {ATTRID_HVAC_THERMOSTAT_UI_CONFIG_DISPLAY_MODE, ZCL_BOOLEAN, RRW, (void *)&zclApp_Config.HvacUiDisplayMode}},
+//    {HVAC_UI_CONFIG, {ATTRID_HVAC_THERMOSTAT_UI_CONFIG_DISPLAY_MODE, ZCL_BOOLEAN, RRW, (void *)&zclApp_Config.HvacUiDisplayMode}},
+    {HVAC_UI_CONFIG, {ATTRID_HVAC_THERMOSTAT_UI_CONFIG_DISPLAY_MODE, ZCL_UINT8, RRW, (void *)&zclApp_Config.HvacUiDisplayMode}},
     
     {TEMP, {ATTRID_MS_TEMPERATURE_MEASURED_VALUE, ZCL_INT16, RR, (void *)&zclApp_Temperature_Sensor_MeasuredValue}},
     {TEMP, {ATTRID_TEMPERATURE_MIN_ABSOLUTE_CHANGE, ZCL_UINT16, RRW, (void *)&zclApp_Config.MsTemperatureMinAbsoluteChange}},

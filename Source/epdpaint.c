@@ -53,6 +53,24 @@ void PaintDrawStringAt(int x, int y, const char* text, sFONT* font, int colored)
         counter++;
     }
 }
+
+void PaintDrawImage(const unsigned char* imgData, int x, int y, int Width, int Height, int colored) {
+  int i, j;
+  const unsigned char* prt = imgData;
+    for (j = 0; j < Height; j++) {
+        for (i = 0; i < Width; i++) {
+          if (* prt & (0x80 >> (i % 8))){
+            PaintDrawPixel(x + i, y + j, colored);            
+          }
+          if (i % 8 == 7) {
+            prt++;
+          }
+        }
+        if (Width % 8 != 0) {
+          prt++;
+        }
+    }
+}
         
 void PaintDrawCharAt(int x, int y, char ascii_char, sFONT* font, int colored) {
     int i, j;
@@ -88,14 +106,14 @@ void PaintDrawPixel(int x, int y, int colored) {
         point_temp = x;
         x = pwidth - y;
         y = point_temp;
-        PaintDrawAbsolutePixel(x, y, colored);
+        PaintDrawAbsolutePixel(x-1, y, colored);
     } else if (protate == ROTATE_180) {
         if(x < 0 || x >= pwidth || y < 0 || y >= pheight) {
           return;
         }
         x = pwidth - x;
         y = pheight - y;
-        PaintDrawAbsolutePixel(x, y, colored);
+        PaintDrawAbsolutePixel(x-1, y-1, colored);
     } else if (protate == ROTATE_270) {
         if(x < 0 || x >= pheight || y < 0 || y >= pwidth) {
           return;
@@ -103,7 +121,7 @@ void PaintDrawPixel(int x, int y, int colored) {
         point_temp = x;
         x = y;
         y = pheight - point_temp;
-        PaintDrawAbsolutePixel(x, y, colored);
+        PaintDrawAbsolutePixel(x, y-1, colored);
     }
 }
 
