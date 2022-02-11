@@ -48,7 +48,7 @@ void EpdInitFull(void) {
   EpdSetMemoryPointer(0, 0);
   WaitUntilIdle();
   EpdSetLutFull(lut_full_update);
-  unsigned char image[672];
+//  unsigned char image[672];
   PaintPaint(image, 0, 0);
 }
 
@@ -73,7 +73,7 @@ void EpdInitPartial(void) {
     EpdSendData(0xC0);   
     EpdSendCommand(MASTER_ACTIVATION); 
     WaitUntilIdle();
-    unsigned char image[672];
+//    unsigned char image[672];
     PaintPaint(image, 0, 0);
 }
 

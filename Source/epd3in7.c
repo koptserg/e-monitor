@@ -78,7 +78,7 @@ void EpdInit(void) {
   EpdSetMemoryPointer(0, 0);
   WaitUntilIdle();
 
-  unsigned char image[672];
+//  unsigned char image[672];
 
   PaintPaint(image, 0, 0);
 }

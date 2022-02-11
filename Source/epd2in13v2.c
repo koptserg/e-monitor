@@ -74,7 +74,7 @@ void EpdInitFull(void) {
   
   EpdSetLutFull(lut_full_update);
   
-  unsigned char image[672];
+//  unsigned char image[672];
   PaintPaint(image, 0, 0);
 }
 
@@ -89,7 +89,7 @@ void EpdInitPartial(void) {
         
     EpdSetLut(lut_partial_update);
        
-    unsigned char image[672];
+//    unsigned char image[672];
     PaintPaint(image, 0, 0);
 }
 

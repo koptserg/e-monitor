@@ -2,10 +2,11 @@
 //#include <avr/pgmspace.h>
 #include "epdpaint.h"
 
+unsigned char image[768];
 unsigned char* pimage;
-int pwidth ;
-int pheight ;
-int protate ;
+int pwidth;
+int pheight;
+int protate;
 int pinvert;
 
 void PaintPaint(unsigned char* image, int width, int height) {

@@ -1237,13 +1237,13 @@ void EpdtestRefresh(void)
   osalTimeUpdate();
   UTCTimeStruct time;
   osal_ConvertUTCTime(&time, osal_getClock());
-/*
+
   char time_string[] = {'0', '0', ':', '0', '0', '\0'};
   time_string[0] = time.hour / 10 % 10 + '0';
   time_string[1] = time.hour % 10 + '0';
   time_string[3] = time.minutes / 10 % 10 + '0';
   time_string[4] = time.minutes % 10 + '0';
-*/
+/*
   char time_string[] = {'0', '0', ':', '\0'};
   time_string[0] = time.hour / 10 % 10 + '0';
   time_string[1] = time.hour % 10 + '0';
@@ -1251,7 +1251,7 @@ void EpdtestRefresh(void)
   char time_string_1[] = {'0', '0', '\0'};
   time_string_1[0] = time.minutes / 10 % 10 + '0';
   time_string_1[1] = time.minutes % 10 + '0';
-  
+*/  
   // covert UTCTimeStruct date and month to display
   time.day = time.day + 1;
   time.month = time.month + 1;  
@@ -1280,76 +1280,44 @@ void EpdtestRefresh(void)
   EpdSetFrameMemoryXY(PaintGetImage(), 56, 82, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD2IN9V2)
-
-  PaintSetWidth(72);
+  PaintSetWidth(124);
   PaintSetHeight(48);
   PaintSetRotate(ROTATE_0);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(4, 4, time_string, &Font48, COLORED);
   EpdSetFrameMemoryXY(PaintGetImage(), 0, 16, PaintGetWidth(), PaintGetHeight());
-  PaintSetWidth(52);
-  PaintSetHeight(48);
-  PaintSetRotate(ROTATE_0);
-  PaintClear(UNCOLORED);
-  PaintDrawStringAt(4, 4, time_string_1, &Font48, COLORED);
-  EpdSetFrameMemoryXY(PaintGetImage(), 72, 16, PaintGetWidth(), PaintGetHeight());
-
 #endif
 #if defined(EPD2IN13V2)
-  PaintSetWidth(72);
+  PaintSetWidth(120);
   PaintSetHeight(48);
   PaintSetRotate(ROTATE_0);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 4, time_string, &Font48, COLORED);
   EpdSetFrameMemoryXY(PaintGetImage(), 0, 16, PaintGetWidth(), PaintGetHeight());
-  PaintSetWidth(48);
-  PaintSetHeight(48);
-  PaintSetRotate(ROTATE_0);
-  PaintClear(UNCOLORED);
-  PaintDrawStringAt(0, 4, time_string_1, &Font48, COLORED);
-  EpdSetFrameMemoryXY(PaintGetImage(), 72, 16, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD3IN7)
   PaintSetWidth(48);
-  PaintSetHeight(72);
+  PaintSetHeight(120);
   PaintSetRotate(ROTATE_90);
   PaintClear(UNCOLORED);
   PaintDrawStringAt(0, 4, time_string, &Font48, COLORED);
   EpdSetFrameMemoryXY(PaintGetImage(), 80, 40, PaintGetWidth(), PaintGetHeight());
-  PaintSetWidth(48);
-  PaintSetHeight(48);
-  PaintSetRotate(ROTATE_90);
-  PaintClear(UNCOLORED);
-  PaintDrawStringAt(0, 4, time_string_1, &Font48, COLORED);
-  EpdSetFrameMemoryXY(PaintGetImage(), 80, 112, PaintGetWidth(), PaintGetHeight());
 #endif
 #if defined(EPD1IN54V2)
   if (zclApp_Config.HvacUiDisplayMode & 0x02){ // portrait
-    PaintSetWidth(72);
+    PaintSetWidth(120);
     PaintSetHeight(48);
     PaintSetRotate(ROTATE_0);
     PaintClear(UNCOLORED);
     PaintDrawStringAt(0, 4, time_string, &Font48, COLORED);
-    EpdSetFrameMemoryXY(PaintGetImage(), 72, 16, PaintGetWidth(), PaintGetHeight());
-    PaintSetWidth(48);
-    PaintSetHeight(48);
-    PaintSetRotate(ROTATE_0);
-    PaintClear(UNCOLORED);
-    PaintDrawStringAt(0, 4, time_string_1, &Font48, COLORED);
-    EpdSetFrameMemoryXY(PaintGetImage(), 144, 16, PaintGetWidth(), PaintGetHeight());
+    EpdSetFrameMemoryXY(PaintGetImage(), 72, 16, PaintGetWidth(), PaintGetHeight());  
   } else { // landscape
     PaintSetWidth(48);
-    PaintSetHeight(72);
+    PaintSetHeight(120);
     PaintSetRotate(ROTATE_90);
     PaintClear(UNCOLORED);
     PaintDrawStringAt(0, 4, time_string, &Font48, COLORED);
     EpdSetFrameMemoryXY(PaintGetImage(), 136, 72, PaintGetWidth(), PaintGetHeight());
-    PaintSetWidth(48);
-    PaintSetHeight(48);
-    PaintSetRotate(ROTATE_90);
-    PaintClear(UNCOLORED);
-    PaintDrawStringAt(0, 4, time_string_1, &Font48, COLORED);
-    EpdSetFrameMemoryXY(PaintGetImage(), 136, 144, PaintGetWidth(), PaintGetHeight());
   }
 #endif
   
@@ -1647,24 +1615,24 @@ void EpdtestRefresh(void)
 #endif
 #if defined(EPD1IN54V2)
   if (zclApp_Config.HvacUiDisplayMode & 0x02){ // portrait   
-    PaintSetWidth(48);
-    PaintSetHeight(48);
+    PaintSetWidth(64);
+    PaintSetHeight(64);
     PaintSetRotate(ROTATE_270);
     PaintSetInvert(!(zclApp_Config.HvacUiDisplayMode & 0x01));
     PaintClear(UNCOLORED);    
     if (zclApp_Occupied == 0) {
-      PaintDrawImage(IMAGE_MOTION_NOT, 0, 0, 48, 48, COLORED);
-      EpdSetFrameMemoryXY(PaintGetImage(), 16, 32, PaintGetWidth(), PaintGetHeight());     
+      PaintDrawImage(IMAGE_MOTION_NOT, 0, 0, 64, 64, COLORED);
+      EpdSetFrameMemoryXY(PaintGetImage(), 8, 24, PaintGetWidth(), PaintGetHeight());     
     } else {
-      PaintDrawImage(IMAGE_MOTION, 0, 0, 48, 48, COLORED);
-      EpdSetFrameMemoryXY(PaintGetImage(), 16, 32, PaintGetWidth(), PaintGetHeight()); 
+      PaintDrawImage(IMAGE_MOTION, 0, 0, 64, 64, COLORED);
+      EpdSetFrameMemoryXY(PaintGetImage(), 8, 24, PaintGetWidth(), PaintGetHeight()); 
     }
     PaintSetInvert(zclApp_Config.HvacUiDisplayMode & 0x01);    
   } else { // landscape
     if (zclApp_Occupied == 0) {
-      EpdSetFrameMemoryImageXY(IMAGE_MOTION_NOT, 120, 16, 48, 48, zclApp_Config.HvacUiDisplayMode & 0x01);
+      EpdSetFrameMemoryImageXY(IMAGE_MOTION_NOT, 112, 8, 64, 64, zclApp_Config.HvacUiDisplayMode & 0x01);
     } else {
-      EpdSetFrameMemoryImageXY(IMAGE_MOTION,     120, 16, 48, 48, zclApp_Config.HvacUiDisplayMode & 0x01);
+      EpdSetFrameMemoryImageXY(IMAGE_MOTION,     112, 8, 64, 64, zclApp_Config.HvacUiDisplayMode & 0x01);
     }
   }
 #endif

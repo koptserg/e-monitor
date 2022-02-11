@@ -39,15 +39,14 @@ void EpdInitFull(void) {
   EpdSetMemoryPointer(0, 0);
   WaitUntilIdle();
   EpdSetLutFull(lut_full_update);
-  unsigned char image[672];
+//  unsigned char image[672];
 //  unsigned char image[448];
   PaintPaint(image, 0, 0);
 }
 
-
 void EpdInitPartial(void) { 
     EpdReset();
-    //WaitUntilIdle();
+//    WaitUntilIdle();
     EpdSetLut(lut_partial_update);
     EpdSendCommand(OTP_SELECTION_CONTROL_1); 
     EpdSendData(0x00);  
@@ -66,7 +65,7 @@ void EpdInitPartial(void) {
     EpdSendData(0xC0);   
     EpdSendCommand(MASTER_ACTIVATION); 
     WaitUntilIdle();
-    unsigned char image[672];
+//    unsigned char image[672];
 //    unsigned char image[448];
     PaintPaint(image, 0, 0);
 }
