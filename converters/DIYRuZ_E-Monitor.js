@@ -391,6 +391,10 @@ const device = {
             await firstEndpoint.configureReporting('msPressureMeasurement', msBindPayload);
             await thirdEndpoint.configureReporting('msOccupancySensing', msOccupancySensingBindPayload);
             await fourthEndpoint.configureReporting('msIlluminanceMeasurement', msBindPayload);
+
+            const time = Math.round((((new Date()).getTime() - OneJanuary2000) / 1000) + (((new Date()).getTimezoneOffset() * -1) * 60));
+            // Time-master + synchronised
+            firstEndpoint.write('genTime', {time: time});
         },
         exposes: [
             exposes.numeric('battery', ACCESS_STATE).withUnit('%').withDescription('Remaining battery in %').withValueMin(0).withValueMax(100),
