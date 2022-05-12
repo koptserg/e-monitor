@@ -128,6 +128,7 @@ bool EpdDetect = 1;
 uint8 fullupdate_hour = 0;
 uint8 zclApp_color = 1;
 uint8 zclApp_EpdUpDown = 0x00; 
+uint32 zclApp_GenTime_old = 0;
 
 #ifdef LQI_REQ
 uint8 zclApp_lqi = 255;
@@ -445,14 +446,28 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
 
     if (events & APP_REPORT_CLOCK_EVT) {
       LREPMaster("APP_REPORT_CLOCK_EVT\r\n");
-      if(zclApp_Occupied == 1 || bdbAttributes.bdbNodeIsOnANetwork == 0) {  
+      
+      //Fix osalclock bug 88 min in 15 days
+      osalTimeUpdate();
+      zclApp_GenTime_TimeUTC = osal_getClock();
+      if ((zclApp_GenTime_TimeUTC - zclApp_GenTime_old) > 70){ //if the interval is more than 70 seconds, then adjust the time
+        zclApp_LocalTime(); //report
+        // Update OSAL time
+        osal_setClock(zclApp_GenTime_old + 60);
         osalTimeUpdate();
-        zclApp_GenTime_TimeUTC = osal_getClock();                
+        zclApp_GenTime_TimeUTC = osal_getClock();
+        zclApp_LocalTime(); //report
+      }
+      zclApp_GenTime_old = zclApp_GenTime_TimeUTC;
+      
+      if(zclApp_Occupied == 1 || bdbAttributes.bdbNodeIsOnANetwork == 0) {  
+//        osalTimeUpdate();
+//        zclApp_GenTime_TimeUTC = osal_getClock();                
 #ifdef LQI_REQ        
         zclApp_RequestLqi();
 #endif 
         fullupdate_hour = fullupdate_hour +1;
-        if (fullupdate_hour == 30){ // over 5 min clear
+        if (fullupdate_hour == 30){ // over 30 min clear
           zclApp_EpdUpdateClock();
           fullupdate_hour = 0;
         }
@@ -522,6 +537,10 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
         osal_start_timerEx(zclApp_TaskID, APP_MOTION_DELAY_EVT, (uint32)zclApp_Config.PirOccupiedToUnoccupiedDelay * 1000);
         LREPMaster("MOTION_START_DELAY\r\n");
         //report
+        if (zclApp_Occupied == 0) {
+          zclApp_Occupied = 1;
+          EpdRefresh();
+        }
         zclApp_Occupied = 1;
         zclApp_Occupied_OnOff = 1;
         zclGeneral_SendOnOff_CmdOn(zclApp_ThirdEP.EndPoint, &inderect_DstAddr, TRUE, bdb_getZCLFrameCounter());
@@ -533,7 +552,8 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
     
     if (events & APP_MOTION_OFF_EVT) {
         LREPMaster("APP_MOTION_OFF_EVT\r\n");
-        //report    
+        //report
+        EpdRefresh();
         zclApp_Occupied = 0;
         zclApp_Occupied_OnOff = 0;
         zclGeneral_SendOnOff_CmdOff(zclApp_ThirdEP.EndPoint, &inderect_DstAddr, TRUE, bdb_getZCLFrameCounter());
@@ -820,6 +840,9 @@ static ZStatus_t zclApp_ReadWriteAuthCB(afAddrType_t *srcAddr, zclAttrRec_t *pAt
 static void zclApp_SaveAttributesToNV(void) {
     uint8 writeStatus = osal_nv_write(NW_APP_CONFIG, 0, sizeof(application_config_t), &zclApp_Config);
     LREP("Saving attributes to NV write=%d\r\n", writeStatus);
+    
+    zclApp_GenTime_old = zclApp_GenTime_TimeUTC;
+    
     osal_setClock(zclApp_GenTime_TimeUTC);
     zclApp_EpdUpdateClock();    
     EpdRefresh();
@@ -2199,6 +2222,8 @@ void zclApp_SetTimeDate(void){
   osal_ConvertUTCTime( &time, osal_getClock() );
   osalTimeUpdate();
   zclApp_GenTime_TimeUTC = osal_getClock();
+  
+  zclApp_GenTime_old = zclApp_GenTime_TimeUTC;
 }
 
 /****************************************************************************
