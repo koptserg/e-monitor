@@ -49,6 +49,7 @@ static void zclCommissioning_ProcessCommissioningStatus(bdbCommissioningModeMsg_
     LREP("bdbCommissioningMode=%d bdbCommissioningStatus=%d bdbRemainingCommissioningModes=0x%X\r\n",
          bdbCommissioningModeMsg->bdbCommissioningMode, bdbCommissioningModeMsg->bdbCommissioningStatus,
          bdbCommissioningModeMsg->bdbRemainingCommissioningModes);
+   
     switch (bdbCommissioningModeMsg->bdbCommissioningMode) {
     case BDB_COMMISSIONING_INITIALIZATION:
         switch (bdbCommissioningModeMsg->bdbCommissioningStatus) {
@@ -72,6 +73,7 @@ static void zclCommissioning_ProcessCommissioningStatus(bdbCommissioningModeMsg_
             break;
 
         default:
+                
             HalLedSet(HAL_LED_1, HAL_LED_MODE_BLINK);
             break;
         }
@@ -84,11 +86,12 @@ static void zclCommissioning_ProcessCommissioningStatus(bdbCommissioningModeMsg_
         case BDB_COMMISSIONING_NETWORK_RESTORED:
             zclCommissioning_ResetBackoffRetry();
             break;
-
+            
         default:
             HalLedSet(HAL_LED_1, HAL_LED_MODE_BLINK);
             // // Parent not found, attempt to rejoin again after a exponential backoff delay
             LREP("rejoinsLeft %d rejoinDelay=%ld\r\n", rejoinsLeft, rejoinDelay);
+            
             if (rejoinsLeft > 0) {
                 rejoinDelay *= APP_COMMISSIONING_END_DEVICE_REJOIN_BACKOFF;
                 rejoinsLeft -= 1;
@@ -154,8 +157,10 @@ uint16 zclCommissioning_event_loop(uint8 task_id, uint16 events) {
     }
     if (events & APP_COMMISSIONING_END_DEVICE_REJOIN_EVT) {
         LREPMaster("APP_END_DEVICE_REJOIN_EVT\r\n");
-#if ZG_BUILD_ENDDEVICE_TYPE
+#if ZG_BUILD_ENDDEVICE_TYPE        
         bdb_ZedAttemptRecoverNwk();
+        // for sleeping after changing parent
+        osal_start_timerEx(zclCommissioning_TaskId, APP_COMMISSIONING_CLOCK_DOWN_POLING_RATE_EVT, 10 * 1000);
 #endif
         return (events ^ APP_COMMISSIONING_END_DEVICE_REJOIN_EVT);
     }
