@@ -423,9 +423,9 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
                   P1DIR |=  BV(0); // P1_0 output
                   P1 |=  BV(0);   // power on DD
                 } else {
-                  IEN2 &= ~HAL_KEY_BIT4; // disable port1 int
-                  P1 &= ~BV(0);   // power off DD //-- 
-                  P1DIR &= ~BV(0); // P1_0 input
+//                  IEN2 &= ~HAL_KEY_BIT4; // disable port1 int
+//                  P1 &= ~BV(0);   // power off DD //-- 
+//                  P1DIR &= ~BV(0); // P1_0 input
                 }
                 break;
             case ZCL_INCOMING_MSG:
@@ -576,7 +576,9 @@ uint16 zclApp_event_loop(uint8 task_id, uint16 events) {
 
     if (events & APP_EPD_DELAY_EVT) {
         LREPMaster("APP_EPD_DELAY_EVT\r\n");
-        EpdtestRefresh();
+        if (EpdDetect == 1) {
+          EpdtestRefresh();
+        }
 
         return (events ^ APP_EPD_DELAY_EVT);
     }
@@ -1286,8 +1288,6 @@ void EpdtestRefresh(void)
   date_string[6] = time.year / 10 % 10 + '0';
   date_string[7] = time.year % 10 + '0';
 
-  uint8 day_week = (uint8)floor((float)(zclApp_GenTime_TimeUTC/86400)) % 7;
-
 #if defined(EPD2IN9)  
   PaintSetWidth(48);
   PaintSetHeight(72);
@@ -1391,20 +1391,21 @@ void EpdtestRefresh(void)
   }
 #endif
 
+  uint8 day_week = (uint16)floor((float)(zclApp_GenTime_TimeUTC/86400)) % 7;
   char* day_string = "";
-  if (day_week == 0) {
+  if (day_week == 5) {
     day_string = "Thursday";
-  } else if (day_week == 1) {
-    day_string = " Friday ";
-  } else if (day_week == 2) {
-    day_string = "Saturday";
-  } else if (day_week == 3) {
-    day_string = " Sunday";
-  } else if (day_week == 4) {
-    day_string = " Monday";
-  } else if (day_week == 5) {
-    day_string = "Tuesday";
   } else if (day_week == 6) {
+    day_string = " Friday ";
+  } else if (day_week == 0) {
+    day_string = "Saturday";
+  } else if (day_week == 1) {
+    day_string = " Sunday";
+  } else if (day_week == 2) {
+    day_string = " Monday";
+  } else if (day_week == 3) {
+    day_string = "Tuesday";
+  } else if (day_week == 4) {
     day_string = "Wednesday";
   }
   PaintSetWidth(16);

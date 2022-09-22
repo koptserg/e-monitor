@@ -37,7 +37,7 @@
 #define MT_SYS_FUNC
 #define MT_ZDO_FUNC
 #define MT_ZDO_MGMT
-#define INT_HEAP_LEN (2688)
+#define INT_HEAP_LEN (2688 - 0xDB)
 #endif
 
 //one of this boards
